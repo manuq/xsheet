@@ -1,5 +1,6 @@
 import bisect
 
+
 class CelList(object):
     def __init__(self):
         self._cels = {}

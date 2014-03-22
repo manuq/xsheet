@@ -18,8 +18,10 @@ STRONG_LINE_WIDTH = 0.5
 SECONDS_LINE_WIDTH = 1.0
 ELEMENT_CEL_RADIUS = 3.0
 
+
 def _get_cairo_color(gdk_color):
-    return (float(gdk_color.red), float(gdk_color.green), float(gdk_color.blue))
+    return (float(gdk_color.red), float(gdk_color.green),
+            float(gdk_color.blue))
 
 
 class _XSheetDrawing(Gtk.DrawingArea):
@@ -28,12 +30,20 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
         self.props.vexpand = True
 
-        self._background_color = _get_cairo_color(self.get_style_context().lookup_color('theme_bg_color')[1])
-        self._background_color_high = _get_cairo_color(self.get_style_context().lookup_color('theme_bg_color')[1])
-        self._background_color_high = [color * 1.05 for color in self._background_color_high]
-        self._selected_color = _get_cairo_color(self.get_style_context().lookup_color('theme_selected_bg_color')[1])
-        self._fg_color = _get_cairo_color(self.get_style_context().lookup_color('theme_fg_color')[1])
-        self._selected_fg_color = _get_cairo_color(self.get_style_context().lookup_color('theme_selected_fg_color')[1])
+        self._background_color = _get_cairo_color(
+            self.get_style_context().lookup_color('theme_bg_color')[1])
+        self._background_color_high = _get_cairo_color(
+            self.get_style_context().lookup_color('theme_bg_color')[1])
+        self._background_color_high = \
+            [color * 1.05 for color in self._background_color_high]
+        self._selected_color = _get_cairo_color(
+            self.get_style_context().lookup_color(
+                'theme_selected_bg_color')[1])
+        self._fg_color = _get_cairo_color(
+            self.get_style_context().lookup_color('theme_fg_color')[1])
+        self._selected_fg_color = _get_cairo_color(
+            self.get_style_context().lookup_color(
+                'theme_selected_fg_color')[1])
 
         self._xsheet = xsheet
         self._adjustment = adjustment
@@ -50,8 +60,9 @@ class _XSheetDrawing(Gtk.DrawingArea):
         self._zoom_start_factor = None
 
         self.add_events(Gdk.EventMask.POINTER_MOTION_MASK |
-            Gdk.EventMask.BUTTON_PRESS_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK |
-            Gdk.EventMask.SCROLL_MASK)
+                        Gdk.EventMask.BUTTON_PRESS_MASK |
+                        Gdk.EventMask.BUTTON_RELEASE_MASK |
+                        Gdk.EventMask.SCROLL_MASK)
 
         self.connect('draw', self.draw_cb)
         self.connect('configure-event', self.configure_event_cb)
@@ -81,8 +92,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
         self._pixbuf = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
 
-        self._adjustment.props.step_increment = CEL_HEIGHT / self.virtual_height
-        self._adjustment.props.page_increment = height / self.virtual_height / 2
+        self._adjustment.props.step_increment = \
+            CEL_HEIGHT / self.virtual_height
+        self._adjustment.props.page_increment = \
+            height / self.virtual_height / 2
         self._adjustment.props.page_size = height / self.virtual_height
         self._calculate_visible_frames()
 
@@ -106,9 +119,11 @@ class _XSheetDrawing(Gtk.DrawingArea):
         self._calculate_visible_frames()
 
     def _calculate_visible_frames(self):
-        self._first_visible_frame = int(-1 * self._offset / CEL_HEIGHT / self._zoom_factor)
-        self._last_visible_frames = (self._first_visible_frame +
-                                     int(math.ceil(self.get_allocated_height() / CEL_HEIGHT / self._zoom_factor)))
+        self._first_visible_frame = \
+            int(-1 * self._offset / CEL_HEIGHT / self._zoom_factor)
+        self._last_visible_frames = (
+            self._first_visible_frame + int(math.ceil(
+                self.get_allocated_height() / CEL_HEIGHT / self._zoom_factor)))
 
     def scroll_changed_cb(self, adjustment):
         self.update_offset()
@@ -147,8 +162,9 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.fill()
 
     def draw_selected_row(self, context):
-        if (self._xsheet.frame_idx < self._first_visible_frame or
-            self._xsheet.frame_idx > self._last_visible_frames):
+        skip_draw = (self._xsheet.frame_idx < self._first_visible_frame or
+                     self._xsheet.frame_idx > self._last_visible_frames)
+        if skip_draw:
             return
 
         y = self._xsheet.frame_idx * CEL_HEIGHT * self._zoom_factor
@@ -166,12 +182,13 @@ class _XSheetDrawing(Gtk.DrawingArea):
             pass_separation_lines = True
 
         line_factor = 1
-        if  self._zoom_factor < 0.2:
+        if self._zoom_factor < 0.2:
             line_factor = 0.5
 
         width = context.get_target().get_width()
         context.set_source_rgb(*self._fg_color)
-        for i in range(self._first_visible_frame, self._last_visible_frames + 1):
+        for i in range(self._first_visible_frame,
+                       self._last_visible_frames + 1):
             if i % 24 == 0:
                 context.set_line_width(SECONDS_LINE_WIDTH)
             elif i % self._xsheet.frames_separation == 0:
@@ -210,18 +227,20 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
     def draw_numbers(self, context):
         context.select_font_face("sans-serif",
-                                 cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+                                 cairo.FONT_SLANT_NORMAL,
+                                 cairo.FONT_WEIGHT_NORMAL)
         context.set_font_size(13)
 
         draw_step = 1
         if self._zoom_factor < 0.15:
             draw_step = 8
-        elif  self._zoom_factor < 0.2:
+        elif self._zoom_factor < 0.2:
             draw_step = 4
         elif self._zoom_factor < 0.6:
             draw_step = 2
 
-        for i in range(self._first_visible_frame, self._last_visible_frames + 1):
+        for i in range(self._first_visible_frame,
+                       self._last_visible_frames + 1):
             if i % draw_step != 0:
                 continue
 
@@ -233,7 +252,8 @@ class _XSheetDrawing(Gtk.DrawingArea):
             text = str(i+1).zfill(3)
             x, y, width, height, dx, dy = context.text_extents(text)
             context.move_to(NUMBERS_WIDTH - width - NUMBERS_MARGIN,
-                            (i * CEL_HEIGHT * self._zoom_factor) + CEL_HEIGHT * self._zoom_factor /2 + height/2)
+                            (i * CEL_HEIGHT * self._zoom_factor) +
+                            CEL_HEIGHT * self._zoom_factor / 2 + height/2)
             context.show_text(text)
 
     def _draw_cel(self, context, layer_idx, frame_idx, cel):
@@ -244,7 +264,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
         context.arc(NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5),
                     CEL_HEIGHT * self._zoom_factor * (frame_idx + 0.5),
-                    ELEMENT_CEL_RADIUS, 0, 2 * math.pi);
+                    ELEMENT_CEL_RADIUS, 0, 2 * math.pi)
         context.fill()
 
     def draw_elements(self, context):
@@ -323,10 +343,11 @@ class _XSheetDrawing(Gtk.DrawingArea):
                 self.zoom_by_direction(-1)
 
         else:
+            increment = self._adjustment.props.step_increment
             if event.direction == Gdk.ScrollDirection.UP:
-                self._adjustment.props.value -= self._adjustment.props.step_increment
+                self._adjustment.props.value -= increment
             elif event.direction == Gdk.ScrollDirection.DOWN:
-                self._adjustment.props.value += self._adjustment.props.step_increment
+                self._adjustment.props.value += increment
 
 
 class XSheetWidget(Gtk.Grid):

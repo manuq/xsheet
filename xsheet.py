@@ -30,7 +30,9 @@ class XSheet(GObject.GObject):
         return self.layers
 
     def go_to_frame(self, frame_idx):
-        if frame_idx < 0 or frame_idx > self.frames_length-1 or frame_idx == self.frame_idx:
+        cant_go = (frame_idx < 0 or frame_idx > self.frames_length-1 or
+                   frame_idx == self.frame_idx)
+        if cant_go:
             return False
 
         self.frame_idx = frame_idx
@@ -67,14 +69,14 @@ class XSheet(GObject.GObject):
         return True
 
     def play(self):
-        if self._play_hid != None:
+        if self._play_hid is not None:
             return False
 
         self._play_hid = GObject.timeout_add(42, self.next_frame, True)
         return True
 
     def stop(self):
-        if self._play_hid == None:
+        if self._play_hid is None:
             return False
 
         GObject.source_remove(self._play_hid)
@@ -83,7 +85,7 @@ class XSheet(GObject.GObject):
 
     @property
     def is_playing(self):
-        return self._play_hid != None
+        return self._play_hid is not None
 
     def previous_layer(self):
         if self.layer_idx == 0:

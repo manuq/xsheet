@@ -1,5 +1,7 @@
 import os
+
 from gi.repository import Gst
+
 
 class Metronome(object):
     def __init__(self, xsheet):
@@ -13,8 +15,10 @@ class Metronome(object):
         self._player.get_bus().add_signal_watch()
 
         directory = os.path.dirname(os.path.abspath(__file__))
-        self._soft_tick_sound_path = os.path.join(directory, 'data', 'sounds', 'soft_tick.wav')
-        self._strong_tick_sound_path = os.path.join(directory, 'data', 'sounds', 'strong_tick.wav')
+        self._soft_tick_sound_path = os.path.join(
+            directory, 'data', 'sounds', 'soft_tick.wav')
+        self._strong_tick_sound_path = os.path.join(
+            directory, 'data', 'sounds', 'strong_tick.wav')
 
     def is_on(self):
         return self._frame_changed_hid is None
@@ -23,7 +27,8 @@ class Metronome(object):
         if self._frame_changed_hid is not None:
             return False
 
-        self._frame_changed_hid = self._xsheet.connect('frame-changed', self.xsheet_changed_cb)
+        self._frame_changed_hid = self._xsheet.connect('frame-changed',
+                                                       self.xsheet_changed_cb)
         return True
 
     def deactivate(self):

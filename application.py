@@ -15,6 +15,7 @@ from xsheetwidget import XSheetWidget
 from metronome import Metronome
 from settingsdialog import SettingsDialog
 
+
 def print_connections(node):
     def print_node(node, i=0, pad=''):
         print("  " * i + ' ' + pad + ' ' + node.get_operation())
@@ -41,7 +42,7 @@ class Application(GObject.GObject):
         self.brush = brush.Brush(brush_info)
 
         self.button_pressed = False
-        self.last_event = (0.0, 0.0, 0.0) # (x, y, time)
+        self.last_event = (0.0, 0.0, 0.0)  # (x, y, time)
 
         self.onionskin_on = True
         self.onionskin_by_cels = True
@@ -65,7 +66,6 @@ class Application(GObject.GObject):
         self.nodes = {}
         self.create_graph()
         self.init_ui()
-
 
     def create_graph(self):
         self.graph = Gegl.Node()
@@ -109,10 +109,12 @@ class Application(GObject.GObject):
 
                 over.connect_to("output", opacity, "input")
 
-                for over, next_opacity in zip(onionskin_overs, onionskin_opacities[1:]):
+                for over, next_opacity in zip(onionskin_overs,
+                                              onionskin_opacities[1:]):
                     next_opacity.connect_to("output", over, "aux")
 
-                onionskin_opacities[0].connect_to("output", current_cel_over, "aux")
+                onionskin_opacities[0].connect_to("output", current_cel_over,
+                                                  "aux")
 
             nodes['onionskin'] = {}
             nodes['onionskin']['overs'] = onionskin_overs
@@ -135,7 +137,8 @@ class Application(GObject.GObject):
             cur_cel = self.xsheet.get_cel(layer_idx=layer_idx)
 
             if cur_cel is not None:
-                cur_cel.surface_node.connect_to("output", layer_nodes['current_cel_over'], "input")
+                cur_cel.surface_node.connect_to(
+                    "output", layer_nodes['current_cel_over'], "input")
             else:
                 layer_nodes['current_cel_over'].disconnect("input")
 
@@ -263,7 +266,8 @@ class Application(GObject.GObject):
         dtime = (time - self.last_event[2])/1000.0
         if self.button_pressed:
             self.surface.begin_atomic()
-            self.brush.stroke_to(self.surface.backend, x, y, pressure, xtilt, ytilt, dtime)
+            self.brush.stroke_to(self.surface.backend, x, y, pressure, xtilt,
+                                 ytilt, dtime)
             self.surface.end_atomic()
 
         self.last_event = (x, y, time)
@@ -308,7 +312,8 @@ class Application(GObject.GObject):
             onionskin_opacities = layer_nodes['onionskin']['opacities']
             current_cel_over = layer_nodes['current_cel_over']
             if self.onionskin_on:
-                onionskin_opacities[0].connect_to("output", current_cel_over, "aux")
+                onionskin_opacities[0].connect_to("output", current_cel_over,
+                                                  "aux")
             else:
                 current_cel_over.disconnect("aux")
 
