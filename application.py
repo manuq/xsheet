@@ -146,7 +146,6 @@ class Application(GObject.GObject):
             for i in range(self.onionskin_length):
                 prev_cel = get_cel(-(i+1), layer_diff=layer_diff)
                 over = layer_nodes['onionskin']['overs'][i]
-                opacity = layer_nodes['onionskin']['opacities'][i]
 
                 if prev_cel is not None:
                     prev_cel.surface_node.connect_to("output", over, "input")
@@ -158,7 +157,7 @@ class Application(GObject.GObject):
 
     def init_ui(self):
         window = Gtk.Window()
-        window.props.title = "XSheet"
+        window.props.title = _("XSheet")
         window.connect("destroy", self.destroy_cb)
         window.connect("size-allocate", self.size_allocate_cb)
         window.connect("key-press-event", self.key_press_cb)
@@ -241,8 +240,8 @@ class Application(GObject.GObject):
 
     def size_allocate_cb(self, widget, allocation):
         background_node = self.nodes['background']
-        self.nodes['background'].set_property("width", allocation.width)
-        self.nodes['background'].set_property("height", allocation.height)
+        background_node.set_property("width", allocation.width)
+        background_node.set_property("height", allocation.height)
 
     def motion_to_cb(self, widget, event):
         # FIXME, better disconnect

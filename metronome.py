@@ -48,7 +48,7 @@ class Metronome(object):
         bus.disconnect_by_func(self.eos_cb)
         self._player.set_state(Gst.State.NULL)
 
-    def error_cb(bus, message):
+    def error_cb(self, bus, message):
         err, debug = message.parse_error()
         print('ERROR play_pipe: %s %s' % (err, debug))
         self._player.set_state(Gst.State.NULL)
