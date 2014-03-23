@@ -28,7 +28,7 @@ class Metronome(object):
             return False
 
         self._frame_changed_hid = self._xsheet.connect('frame-changed',
-                                                       self.xsheet_changed_cb)
+                                                       self._xsheet_changed_cb)
         return True
 
     def deactivate(self):
@@ -39,27 +39,27 @@ class Metronome(object):
         self._frame_changed_hid = None
         return True
 
-    def tick(self, sound_path):
+    def _tick(self, sound_path):
         self._player.set_state(Gst.State.NULL)
 
         bus = self._player.get_bus()
-        bus.connect('message::eos', self.eos_cb)
-        bus.connect('message::error', self.error_cb)
+        bus.connect('message::eos', self._eos_cb)
+        bus.connect('message::error', self._error_cb)
 
         self._player.props.uri = 'file://' + sound_path
         self._player.set_state(Gst.State.PLAYING)
 
-    def eos_cb(self, bus, message):
-        bus.disconnect_by_func(self.eos_cb)
+    def _eos_cb(self, bus, message):
+        bus.disconnect_by_func(self._eos_cb)
         self._player.set_state(Gst.State.NULL)
 
-    def error_cb(self, bus, message):
+    def _error_cb(self, bus, message):
         err, debug = message.parse_error()
         print('ERROR play_pipe: %s %s' % (err, debug))
         self._player.set_state(Gst.State.NULL)
 
-    def xsheet_changed_cb(self, xsheet):
+    def _xsheet_changed_cb(self, xsheet):
         if xsheet.frame_idx % 24 == 0:
-            self.tick(self._strong_tick_sound_path)
+            self._tick(self._strong_tick_sound_path)
         elif xsheet.frame_idx % xsheet.frames_separation == 0:
-            self.tick(self._soft_tick_sound_path)
+            self._tick(self._soft_tick_sound_path)

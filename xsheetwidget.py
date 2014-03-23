@@ -64,16 +64,16 @@ class _XSheetDrawing(Gtk.DrawingArea):
                         Gdk.EventMask.BUTTON_RELEASE_MASK |
                         Gdk.EventMask.SCROLL_MASK)
 
-        self.connect('draw', self.draw_cb)
-        self.connect('configure-event', self.configure_event_cb)
-        self.connect("motion-notify-event", self.motion_notify_cb)
-        self.connect("button-press-event", self.button_press_cb)
-        self.connect("button-release-event", self.button_release_cb)
-        self.connect("scroll-event", self.scroll_cb)
+        self.connect('draw', self._draw_cb)
+        self.connect('configure-event', self._configure_event_cb)
+        self.connect("motion-notify-event", self._motion_notify_cb)
+        self.connect("button-press-event", self._button_press_cb)
+        self.connect("button-release-event", self._button_release_cb)
+        self.connect("scroll-event", self._scroll_cb)
 
-        self._xsheet.connect('frame-changed', self.xsheet_changed_cb)
-        self._xsheet.connect('layer-changed', self.xsheet_changed_cb)
-        self._adjustment.connect("value-changed", self.scroll_changed_cb)
+        self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
+        self._xsheet.connect('layer-changed', self._xsheet_changed_cb)
+        self._adjustment.connect("value-changed", self._scroll_changed_cb)
 
         widget_width = NUMBERS_WIDTH + CEL_WIDTH * self._xsheet.layers_length
         self.set_size_request(widget_width, -1)
@@ -82,7 +82,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
     def virtual_height(self):
         return self._xsheet.frames_length * CEL_HEIGHT * self._zoom_factor
 
-    def configure(self):
+    def _configure(self):
         width = self.get_allocated_width()
         height = self.props.parent.get_allocated_height()
 
@@ -99,11 +99,11 @@ class _XSheetDrawing(Gtk.DrawingArea):
         self._adjustment.props.page_size = height / self.virtual_height
         self._calculate_visible_frames()
 
-    def configure_event_cb(self, widget, event, data=None):
-        self.configure()
+    def _configure_event_cb(self, widget, event, data=None):
+        self._configure()
         return False
 
-    def xsheet_changed_cb(self, xsheet):
+    def _xsheet_changed_cb(self, xsheet):
         if (self._xsheet.frame_idx < self._first_visible_frame):
             self._adjustment.props.value -= self._adjustment.props.page_size
 
@@ -112,7 +112,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
         self.queue_draw()
 
-    def update_offset(self):
+    def _update_offset(self):
         dy = self.virtual_height - self.get_allocated_height()
         dx = self._adjustment.props.upper - self._adjustment.props.page_size
         self._offset = -1 * self._adjustment.props.value * dy / dx
@@ -125,11 +125,11 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._first_visible_frame + int(math.ceil(
                 self.get_allocated_height() / CEL_HEIGHT / self._zoom_factor)))
 
-    def scroll_changed_cb(self, adjustment):
-        self.update_offset()
+    def _scroll_changed_cb(self, adjustment):
+        self._update_offset()
         self.queue_draw()
 
-    def draw_cb(self, widget, context):
+    def _draw_cb(self, widget, context):
         if self._pixbuf is None:
             print('No buffer to paint')
             return False
@@ -138,16 +138,16 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
         drawing_context.translate(0, self._offset)
 
-        self.draw_background(drawing_context)
-        self.draw_selected_row(drawing_context)
-        self.draw_grid(drawing_context)
-        self.draw_numbers(drawing_context)
-        self.draw_elements(drawing_context)
+        self._draw_background(drawing_context)
+        self._draw_selected_row(drawing_context)
+        self._draw_grid(drawing_context)
+        self._draw_numbers(drawing_context)
+        self._draw_elements(drawing_context)
 
         context.set_source_surface(self._pixbuf, 0, 0)
         context.paint()
 
-    def draw_background(self, context):
+    def _draw_background(self, context):
         width = self.get_allocated_width()
         height = -1 * self._offset + self.get_allocated_height()
         current_layer_x = NUMBERS_WIDTH + self._xsheet.layer_idx * CEL_WIDTH
@@ -161,7 +161,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.rectangle(current_layer_x, 0, CEL_WIDTH, height)
         context.fill()
 
-    def draw_selected_row(self, context):
+    def _draw_selected_row(self, context):
         skip_draw = (self._xsheet.frame_idx < self._first_visible_frame or
                      self._xsheet.frame_idx > self._last_visible_frames)
         if skip_draw:
@@ -173,7 +173,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.rectangle(0, y, width, CEL_HEIGHT * self._zoom_factor)
         context.fill()
 
-    def draw_grid_horizontal(self, context):
+    def _draw_grid_horizontal(self, context):
         pass_frame_lines = False
         pass_separation_lines = False
         if self._zoom_factor * CEL_HEIGHT < 5:
@@ -205,7 +205,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
             context.line_to(width, y)
             context.stroke()
 
-    def draw_grid_vertical(self, context):
+    def _draw_grid_vertical(self, context):
         context.set_source_rgb(*self._fg_color)
         context.set_line_width(SOFT_LINE_WIDTH)
 
@@ -221,11 +221,11 @@ class _XSheetDrawing(Gtk.DrawingArea):
             context.line_to(x, y2)
         context.stroke()
 
-    def draw_grid(self, context):
-        self.draw_grid_vertical(context)
-        self.draw_grid_horizontal(context)
+    def _draw_grid(self, context):
+        self._draw_grid_vertical(context)
+        self._draw_grid_horizontal(context)
 
-    def draw_numbers(self, context):
+    def _draw_numbers(self, context):
         context.select_font_face("sans-serif",
                                  cairo.FONT_SLANT_NORMAL,
                                  cairo.FONT_WEIGHT_NORMAL)
@@ -267,7 +267,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
                     ELEMENT_CEL_RADIUS, 0, 2 * math.pi)
         context.fill()
 
-    def draw_elements(self, context):
+    def _draw_elements(self, context):
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
             # FIXME cut the result of layer.get_changing_frames() to
@@ -280,7 +280,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
     def _get_frame_from_point(self, x, y):
         return int((y - self._offset) / CEL_HEIGHT / self._zoom_factor)
 
-    def button_press_cb(self, widget, event):
+    def _button_press_cb(self, widget, event):
         if event.button == 1:
             self._scrubbing = True
         elif event.button == 2:
@@ -291,7 +291,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._zoom_start = event.y
             self._zoom_start_factor = self._zoom_factor
 
-    def button_release_cb(self, widget, event):
+    def _button_release_cb(self, widget, event):
         if not self._scrubbing and not self._dragging and not self._zooming:
             frame_idx = self._get_frame_from_point(event.x, event.y)
             self._xsheet.go_to_frame(frame_idx)
@@ -306,7 +306,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._zoom_start = 0
             self._zoom_start_factor = None
 
-    def motion_notify_cb(self, widget, event):
+    def _motion_notify_cb(self, widget, event):
         x, y = event.x, event.y
         frame_idx = self._get_frame_from_point(event.x, event.y)
         if self._scrubbing:
@@ -316,31 +316,31 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._adjustment.props.value += dy
             self._drag_start = event.y
         elif self._zooming:
-            self.zoom_by_offset(self._zoom_start - event.y)
+            self._zoom_by_offset(self._zoom_start - event.y)
 
-    def zoom_by_direction(self, direction):
+    def _zoom_by_direction(self, direction):
         self.zoom(self._zoom_factor + ZOOM_STEP * direction)
 
-    def zoom_by_offset(self, offset):
-        self.zoom(self._zoom_start_factor - 0.01 * offset)
+    def _zoom_by_offset(self, offset):
+        self._zoom(self._zoom_start_factor - 0.01 * offset)
 
-    def zoom(self, value):
+    def _zoom(self, value):
         if value < MIN_ZOOM or value > MAX_ZOOM:
             return False
 
         self._zoom_factor = value
-        self.configure()
-        self.update_offset()
+        self._configure()
+        self._update_offset()
         self.queue_draw()
 
         return True
 
-    def scroll_cb(self, widget, event):
+    def _scroll_cb(self, widget, event):
         if event.state & Gdk.ModifierType.CONTROL_MASK:
             if event.direction == Gdk.ScrollDirection.UP:
-                self.zoom_by_direction(1)
+                self._zoom_by_direction(1)
             elif event.direction == Gdk.ScrollDirection.DOWN:
-                self.zoom_by_direction(-1)
+                self._zoom_by_direction(-1)
 
         else:
             increment = self._adjustment.props.step_increment

@@ -37,74 +37,78 @@ class Application(GObject.GObject):
         brush_file = open('../mypaint/brushes/classic/charcoal.myb')
         brush_info = brush.BrushInfo(brush_file.read())
         brush_info.set_color_rgb((0.0, 0.0, 0.0))
-        self.default_eraser = brush_info.get_base_value("eraser")
-        self.default_radius = brush_info.get_base_value("radius_logarithmic")
-        self.brush = brush.Brush(brush_info)
+        self._default_eraser = brush_info.get_base_value("eraser")
+        self._default_radius = brush_info.get_base_value("radius_logarithmic")
+        self._brush = brush.Brush(brush_info)
 
-        self.button_pressed = False
-        self.last_event = (0.0, 0.0, 0.0)  # (x, y, time)
+        self._button_pressed = False
+        self._last_event = (0.0, 0.0, 0.0)  # (x, y, time)
 
-        self.onionskin_on = True
-        self.onionskin_by_cels = True
-        self.onionskin_length = 3
-        self.onionskin_falloff = 0.5
+        self._onionskin_on = True
+        self._onionskin_by_cels = True
+        self._onionskin_length = 3
+        self._onionskin_falloff = 0.5
 
-        self.eraser_on = False
-        self.force_add_cel = True
+        self._eraser_on = False
+        self._force_add_cel = True
 
-        self.surface = None
-        self.surface_node = None
+        self._surface = None
+        self._surface_node = None
 
-        self.xsheet = XSheet(24 * 60)
-        self.xsheet.connect('frame-changed', self.xsheet_changed_cb)
-        self.xsheet.connect('layer-changed', self.xsheet_changed_cb)
+        self._xsheet = XSheet(24 * 60)
+        self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
+        self._xsheet.connect('layer-changed', self._xsheet_changed_cb)
 
-        self.metronome = Metronome(self.xsheet)
+        self._metronome = Metronome(self._xsheet)
 
-        self.update_surface()
+        self._update_surface()
 
-        self.nodes = {}
-        self.create_graph()
-        self.init_ui()
+        self._graph = None
+        self._nodes = {}
+        self._create_graph()
+        self._init_ui()
 
-    def create_graph(self):
-        self.graph = Gegl.Node()
+    def run(self):
+        return Gtk.main()
 
-        main_over = self.graph.create_child("gegl:over")
-        self.nodes['main_over'] = main_over
+    def _create_graph(self):
+        self._graph = Gegl.Node()
+
+        main_over = self._graph.create_child("gegl:over")
+        self._nodes['main_over'] = main_over
 
         layer_overs = []
-        for l in range(self.xsheet.layers_length):
-            over = self.graph.create_child("gegl:over")
+        for l in range(self._xsheet.layers_length):
+            over = self._graph.create_child("gegl:over")
             layer_overs.append(over)
 
-        self.nodes['layer_overs'] = layer_overs
+        self._nodes['layer_overs'] = layer_overs
 
         layer_overs[0].connect_to("output", main_over, "input")
 
         for over, next_over in zip(layer_overs, layer_overs[1:]):
             next_over.connect_to("output", over, "input")
 
-        background_node = self.graph.create_child("gegl:rectangle")
+        background_node = self._graph.create_child("gegl:rectangle")
         background_node.set_property('color', Gegl.Color.new("#fff"))
         background_node.connect_to("output", layer_overs[-1], "input")
-        self.nodes['background'] = background_node
+        self._nodes['background'] = background_node
 
         layer_nodes = []
-        for l in range(self.xsheet.layers_length):
+        for l in range(self._xsheet.layers_length):
             nodes = {}
-            current_cel_over = self.graph.create_child("gegl:over")
+            current_cel_over = self._graph.create_child("gegl:over")
             current_cel_over.connect_to("output", layer_overs[l], "aux")
             nodes['current_cel_over'] = current_cel_over
 
             onionskin_overs = []
             onionskin_opacities = []
-            for i in range(self.onionskin_length):
-                over = self.graph.create_child("gegl:over")
+            for i in range(self._onionskin_length):
+                over = self._graph.create_child("gegl:over")
                 onionskin_overs.append(over)
 
-                opacity = self.graph.create_child("gegl:opacity")
-                opacity.set_property('value', 1 - self.onionskin_falloff)
+                opacity = self._graph.create_child("gegl:opacity")
+                opacity.set_property('value', 1 - self._onionskin_falloff)
                 onionskin_opacities.append(opacity)
 
                 over.connect_to("output", opacity, "input")
@@ -121,20 +125,20 @@ class Application(GObject.GObject):
             nodes['onionskin']['opacities'] = onionskin_opacities
             layer_nodes.append(nodes)
 
-        self.nodes['layer_nodes'] = layer_nodes
+        self._nodes['layer_nodes'] = layer_nodes
 
-        self.update_graph()
+        self._update_graph()
 
-    def update_graph(self):
+    def _update_graph(self):
         get_cel = None
-        if self.onionskin_by_cels:
-            get_cel = self.xsheet.get_cel_relative_by_cels
+        if self._onionskin_by_cels:
+            get_cel = self._xsheet.get_cel_relative_by_cels
         else:
-            get_cel = self.xsheet.get_cel_relative
+            get_cel = self._xsheet.get_cel_relative
 
-        for layer_idx in range(self.xsheet.layers_length):
-            layer_nodes = self.nodes['layer_nodes'][layer_idx]
-            cur_cel = self.xsheet.get_cel(layer_idx=layer_idx)
+        for layer_idx in range(self._xsheet.layers_length):
+            layer_nodes = self._nodes['layer_nodes'][layer_idx]
+            cur_cel = self._xsheet.get_cel(layer_idx=layer_idx)
 
             if cur_cel is not None:
                 cur_cel.surface_node.connect_to(
@@ -142,11 +146,11 @@ class Application(GObject.GObject):
             else:
                 layer_nodes['current_cel_over'].disconnect("input")
 
-            if not self.onionskin_on:
+            if not self._onionskin_on:
                 continue
 
-            layer_diff = layer_idx - self.xsheet.layer_idx
-            for i in range(self.onionskin_length):
+            layer_diff = layer_idx - self._xsheet.layer_idx
+            for i in range(self._onionskin_length):
                 prev_cel = get_cel(-(i+1), layer_diff=layer_diff)
                 over = layer_nodes['onionskin']['overs'][i]
 
@@ -156,15 +160,15 @@ class Application(GObject.GObject):
                     over.disconnect("input")
 
         # debug
-        # print_connections(self.nodes['main_over'])
+        # print_connections(self._nodes['main_over'])
 
-    def init_ui(self):
+    def _init_ui(self):
         window = Gtk.Window()
         window.props.title = _("XSheet")
-        window.connect("destroy", self.destroy_cb)
-        window.connect("size-allocate", self.size_allocate_cb)
-        window.connect("key-press-event", self.key_press_cb)
-        window.connect("key-release-event", self.key_release_cb)
+        window.connect("destroy", self._destroy_cb)
+        window.connect("size-allocate", self._size_allocate_cb)
+        window.connect("key-press-event", self._key_press_cb)
+        window.connect("key-release-event", self._key_release_cb)
         window.show()
 
         top_box = Gtk.Grid()
@@ -187,68 +191,65 @@ class Application(GObject.GObject):
 
         play_button = Gtk.ToggleToolButton()
         play_button.set_stock_id("xsheet-play")
-        play_button.connect("toggled", self.toggle_play_cb)
+        play_button.connect("toggled", self._toggle_play_cb)
         toolbar.insert(play_button, -1)
         play_button.show()
 
         onionskin_button = Gtk.ToggleToolButton()
         onionskin_button.set_stock_id("xsheet-onionskin")
         onionskin_button.set_active(True)
-        onionskin_button.connect("toggled", self.toggle_onionskin_cb)
+        onionskin_button.connect("toggled", self._toggle_onionskin_cb)
         toolbar.insert(onionskin_button, -1)
         onionskin_button.show()
 
         eraser_button = Gtk.ToggleToolButton()
         eraser_button.set_stock_id("xsheet-eraser")
-        eraser_button.connect("toggled", self.toggle_eraser_cb)
+        eraser_button.connect("toggled", self._toggle_eraser_cb)
         toolbar.insert(eraser_button, -1)
         eraser_button.show()
 
         metronome_button = Gtk.ToggleToolButton()
         metronome_button.set_stock_id("xsheet-metronome")
-        metronome_button.connect("toggled", self.toggle_metronome_cb)
+        metronome_button.connect("toggled", self._toggle_metronome_cb)
         toolbar.insert(metronome_button, -1)
         metronome_button.show()
 
         settings_button = Gtk.ToolButton()
         settings_button.set_stock_id("xsheet-settings")
-        settings_button.connect("clicked", self.settings_click_cb)
+        settings_button.connect("clicked", self._settings_click_cb)
         toolbar.insert(settings_button, -1)
         settings_button.show()
 
         event_box = Gtk.EventBox()
-        event_box.connect("motion-notify-event", self.motion_to_cb)
-        event_box.connect("button-press-event", self.button_press_cb)
-        event_box.connect("button-release-event", self.button_release_cb)
+        event_box.connect("motion-notify-event", self._motion_to_cb)
+        event_box.connect("button-press-event", self._button_press_cb)
+        event_box.connect("button-release-event", self._button_release_cb)
         top_box.attach(event_box, 0, 1, 1, 1)
         event_box.props.expand = True
         event_box.show()
 
         view_widget = GeglGtk.View()
-        view_widget.set_node(self.nodes['main_over'])
+        view_widget.set_node(self._nodes['main_over'])
         view_widget.set_autoscale_policy(GeglGtk.ViewAutoscale.DISABLED)
         view_widget.set_size_request(800, 400)
         event_box.add(view_widget)
         view_widget.show()
 
-        xsheet_widget = XSheetWidget(self.xsheet)
+        xsheet_widget = XSheetWidget(self._xsheet)
         top_box.attach(xsheet_widget, 1, 1, 1, 1)
         xsheet_widget.show()
 
-    def run(self):
-        return Gtk.main()
-
-    def destroy_cb(self, *ignored):
+    def _destroy_cb(self, *ignored):
         Gtk.main_quit()
 
-    def size_allocate_cb(self, widget, allocation):
-        background_node = self.nodes['background']
+    def _size_allocate_cb(self, widget, allocation):
+        background_node = self._nodes['background']
         background_node.set_property("width", allocation.width)
         background_node.set_property("height", allocation.height)
 
-    def motion_to_cb(self, widget, event):
+    def _motion_to_cb(self, widget, event):
         # FIXME, better disconnect
-        if self.surface is None:
+        if self._surface is None:
             return
 
         (x, y, time) = event.x, event.y, event.time
@@ -263,113 +264,114 @@ class Application(GObject.GObject):
             xtilt = 0
             ytilt = 0
 
-        dtime = (time - self.last_event[2])/1000.0
-        if self.button_pressed:
-            self.surface.begin_atomic()
-            self.brush.stroke_to(self.surface.backend, x, y, pressure, xtilt,
-                                 ytilt, dtime)
-            self.surface.end_atomic()
+        dtime = (time - self._last_event[2])/1000.0
+        if self._button_pressed:
+            self._surface.begin_atomic()
+            self._brush.stroke_to(self._surface.backend, x, y, pressure, xtilt,
+                                  ytilt, dtime)
+            self._surface.end_atomic()
 
-        self.last_event = (x, y, time)
+        self._last_event = (x, y, time)
 
-    def button_press_cb(self, widget, event):
-        if self.force_add_cel:
-            self.xsheet.add_cel()
+    def _button_press_cb(self, widget, event):
+        if self._force_add_cel:
+            self._xsheet.add_cel()
 
-        self.button_pressed = True
+        self._button_pressed = True
 
-    def button_release_cb(self, widget, event):
-        self.button_pressed = False
-        self.brush.reset()
+    def _button_release_cb(self, widget, event):
+        self._button_pressed = False
+        self._brush.reset()
 
-    def xsheet_changed_cb(self, xsheet):
-        self.update_surface()
-        self.update_graph()
+    def _xsheet_changed_cb(self, xsheet):
+        self._update_surface()
+        self._update_graph()
 
-    def update_surface(self):
-        cel = self.xsheet.get_cel()
+    def _update_surface(self):
+        cel = self._xsheet.get_cel()
         if cel is not None:
-            self.surface = cel.surface
-            self.surface_node = cel.surface_node
+            self._surface = cel.surface
+            self._surface_node = cel.surface_node
         else:
-            self.surface = None
-            self.surface_node = None
+            self._surface = None
+            self._surface_node = None
 
-    def toggle_play_stop(self):
-        if self.xsheet.is_playing:
-            self.xsheet.stop()
+    def _toggle_play_stop(self):
+        if self._xsheet.is_playing:
+            self._xsheet.stop()
         else:
-            self.xsheet.play()
+            self._xsheet.play()
 
-    def toggle_play_cb(self, widget):
-        self.toggle_play_stop()
+    def _toggle_play_cb(self, widget):
+        self._toggle_play_stop()
 
-    def toggle_onionskin(self):
-        self.onionskin_on = not self.onionskin_on
+    def _toggle_onionskin(self):
+        self._onionskin_on = not self._onionskin_on
 
-        for layer_idx in range(self.xsheet.layers_length):
-            layer_nodes = self.nodes['layer_nodes'][layer_idx]
+        for layer_idx in range(self._xsheet.layers_length):
+            layer_nodes = self._nodes['layer_nodes'][layer_idx]
             onionskin_opacities = layer_nodes['onionskin']['opacities']
             current_cel_over = layer_nodes['current_cel_over']
-            if self.onionskin_on:
+            if self._onionskin_on:
                 onionskin_opacities[0].connect_to("output", current_cel_over,
                                                   "aux")
             else:
                 current_cel_over.disconnect("aux")
 
-        self.update_graph()
+        self._update_graph()
 
-    def toggle_onionskin_cb(self, widget):
-        self.toggle_onionskin()
+    def _toggle_onionskin_cb(self, widget):
+        self._toggle_onionskin()
 
-    def toggle_eraser(self):
-        self.eraser_on = not self.eraser_on
+    def _toggle_eraser(self):
+        self._eraser_on = not self._eraser_on
 
-        if self.eraser_on:
-            self.brush.brushinfo.set_base_value("eraser", 1.0)
-            self.brush.brushinfo.set_base_value("radius_logarithmic",
-                                                self.default_radius * 3)
+        if self._eraser_on:
+            self._brush.brushinfo.set_base_value("eraser", 1.0)
+            self._brush.brushinfo.set_base_value("radius_logarithmic",
+                                                 self._default_radius * 3)
         else:
-            self.brush.brushinfo.set_base_value("eraser", self.default_eraser)
-            self.brush.brushinfo.set_base_value("radius_logarithmic",
-                                                self.default_radius)
+            self._brush.brushinfo.set_base_value("eraser",
+                                                 self._default_eraser)
+            self._brush.brushinfo.set_base_value("radius_logarithmic",
+                                                 self._default_radius)
 
-    def toggle_eraser_cb(self, widget):
-        self.toggle_eraser()
+    def _toggle_eraser_cb(self, widget):
+        self._toggle_eraser()
 
-    def toggle_metronome(self):
-        if self.metronome.is_on():
-            self.metronome.activate()
+    def _toggle_metronome(self):
+        if self._metronome.is_on():
+            self._metronome.activate()
         else:
-            self.metronome.deactivate()
+            self._metronome.deactivate()
 
-    def toggle_metronome_cb(self, widget):
-        self.toggle_metronome()
+    def _toggle_metronome_cb(self, widget):
+        self._toggle_metronome()
 
-    def settings_click_cb(self, widget):
+    def _settings_click_cb(self, widget):
         dialog = SettingsDialog(widget.get_toplevel())
         dialog.show()
 
-    def key_press_cb(self, widget, event):
+    def _key_press_cb(self, widget, event):
         if event.keyval == Gdk.KEY_Up:
-            self.xsheet.previous_frame()
+            self._xsheet.previous_frame()
         elif event.keyval == Gdk.KEY_Down:
-            self.xsheet.next_frame()
+            self._xsheet.next_frame()
 
-    def key_release_cb(self, widget, event):
+    def _key_release_cb(self, widget, event):
         if event.keyval == Gdk.KEY_c:
-            self.xsheet.add_cel()
+            self._xsheet.add_cel()
         elif event.keyval == Gdk.KEY_p:
-            self.toggle_play_stop()
+            self._toggle_play_stop()
         elif event.keyval == Gdk.KEY_o:
-            self.toggle_onionskin()
+            self._toggle_onionskin()
         elif event.keyval == Gdk.KEY_e:
-            self.toggle_eraser()
+            self._toggle_eraser()
         elif event.keyval == Gdk.KEY_BackSpace:
             # FIXME, needs to be done in gegl backend
-            if self.surface is not None:
-                self.surface.clear()
+            if self._surface is not None:
+                self._surface.clear()
         elif event.keyval == Gdk.KEY_Left:
-            self.xsheet.previous_layer()
+            self._xsheet.previous_layer()
         elif event.keyval == Gdk.KEY_Right:
-            self.xsheet.next_layer()
+            self._xsheet.next_layer()
