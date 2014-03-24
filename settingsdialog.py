@@ -85,7 +85,6 @@ class SettingsDialog(Gtk.Dialog):
 
         self._add_label(_("Previous range:"), grid, 0, cur_row)
 
-        prev_adj = Gtk.Adjustment()
         prev_adj = Gtk.Adjustment(value=0, lower=0, upper=6,
                                   step_incr=1, page_incr=1, page_size=1)
 
@@ -99,7 +98,6 @@ class SettingsDialog(Gtk.Dialog):
 
         self._add_label(_("Nest range:"), grid, 0, cur_row)
 
-        next_adj = Gtk.Adjustment()
         next_adj = Gtk.Adjustment(value=0, lower=0, upper=6,
                                   step_incr=1, page_incr=1, page_size=1)
 
