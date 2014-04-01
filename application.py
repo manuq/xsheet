@@ -181,7 +181,8 @@ class Application(GObject.GObject):
 
         factory = Gtk.IconFactory()
         icon_names = ['xsheet-onionskin', 'xsheet-play', 'xsheet-eraser',
-                      'xsheet-metronome', 'xsheet-settings']
+                      'xsheet-metronome', 'xsheet-settings',
+                      'xsheet-prev-layer', 'xsheet-next-layer']
         for name in icon_names:
             filename = os.path.join('data', 'icons', name + '.svg')
             pixbuf = GdkPixbuf.Pixbuf.new_from_file(filename)
@@ -219,6 +220,24 @@ class Application(GObject.GObject):
         settings_button.connect("clicked", self._settings_click_cb)
         toolbar.insert(settings_button, -1)
         settings_button.show()
+
+        separator = Gtk.SeparatorToolItem()
+        separator.props.draw = False
+        separator.set_expand(True)
+        toolbar.insert(separator, -1)
+        separator.show()
+
+        prev_layer_button = Gtk.ToolButton()
+        prev_layer_button.set_stock_id("xsheet-prev-layer")
+        prev_layer_button.connect("clicked", self._prev_layer_click_cb)
+        toolbar.insert(prev_layer_button, -1)
+        prev_layer_button.show()
+
+        next_layer_button = Gtk.ToolButton()
+        next_layer_button.set_stock_id("xsheet-next-layer")
+        next_layer_button.connect("clicked", self._next_layer_click_cb)
+        toolbar.insert(next_layer_button, -1)
+        next_layer_button.show()
 
         event_box = Gtk.EventBox()
         event_box.connect("motion-notify-event", self._motion_to_cb)
@@ -351,6 +370,12 @@ class Application(GObject.GObject):
     def _settings_click_cb(self, widget):
         dialog = SettingsDialog(widget.get_toplevel())
         dialog.show()
+
+    def _prev_layer_click_cb(self, widget):
+        self._xsheet.previous_layer()
+
+    def _next_layer_click_cb(self, widget):
+        self._xsheet.next_layer()
 
     def _key_press_cb(self, widget, event):
         if event.keyval == Gdk.KEY_Up:
