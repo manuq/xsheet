@@ -319,7 +319,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._zoom_by_offset(self._zoom_start - event.y)
 
     def _zoom_by_direction(self, direction):
-        self.zoom(self._zoom_factor + ZOOM_STEP * direction)
+        self._zoom(self._zoom_factor + ZOOM_STEP * direction)
 
     def _zoom_by_offset(self, offset):
         self._zoom(self._zoom_start_factor - 0.01 * offset)
