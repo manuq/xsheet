@@ -49,6 +49,8 @@ class Application(GObject.GObject):
         self._onionskin_length = 3
         self._onionskin_falloff = 0.5
 
+        self._view_widget = None
+
         self._eraser_on = False
         self._force_add_cel = True
 
@@ -166,7 +168,6 @@ class Application(GObject.GObject):
         window = Gtk.Window()
         window.props.title = _("XSheet")
         window.connect("destroy", self._destroy_cb)
-        window.connect("size-allocate", self._size_allocate_cb)
         window.connect("key-press-event", self._key_press_cb)
         window.connect("key-release-event", self._key_release_cb)
         window.show()
@@ -247,12 +248,13 @@ class Application(GObject.GObject):
         event_box.props.expand = True
         event_box.show()
 
-        view_widget = GeglGtk.View()
-        view_widget.set_node(self._nodes['main_over'])
-        view_widget.set_autoscale_policy(GeglGtk.ViewAutoscale.DISABLED)
-        view_widget.set_size_request(800, 400)
-        event_box.add(view_widget)
-        view_widget.show()
+        self._view_widget = GeglGtk.View()
+        self._view_widget.set_node(self._nodes['main_over'])
+        self._view_widget.set_autoscale_policy(GeglGtk.ViewAutoscale.DISABLED)
+        self._view_widget.set_size_request(800, 400)
+        self._view_widget.connect("size-allocate", self._size_allocate_cb)
+        event_box.add(self._view_widget)
+        self._view_widget.show()
 
         xsheet_widget = XSheetWidget(self._xsheet)
         top_box.attach(xsheet_widget, 1, 1, 1, 1)
@@ -272,6 +274,9 @@ class Application(GObject.GObject):
             return
 
         (x, y, time) = event.x, event.y, event.time
+
+        x = (x + self._view_widget.props.x) / self._view_widget.props.scale
+        y = (y + self._view_widget.props.y) / self._view_widget.props.scale
 
         pressure = event.get_axis(Gdk.AxisUse.PRESSURE)
         if pressure is None:
@@ -378,10 +383,20 @@ class Application(GObject.GObject):
         self._xsheet.next_layer()
 
     def _key_press_cb(self, widget, event):
+        scale = self._view_widget.props.scale
+
         if event.keyval == Gdk.KEY_Up:
             self._xsheet.previous_frame()
         elif event.keyval == Gdk.KEY_Down:
             self._xsheet.next_frame()
+        elif event.keyval == Gdk.KEY_h:
+            self._view_widget.props.x -= 10 * scale
+        elif event.keyval == Gdk.KEY_l:
+            self._view_widget.props.x += 10 * scale
+        elif event.keyval == Gdk.KEY_k:
+            self._view_widget.props.y -= 10 * scale
+        elif event.keyval == Gdk.KEY_j:
+            self._view_widget.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
         if event.keyval == Gdk.KEY_c:
@@ -400,3 +415,7 @@ class Application(GObject.GObject):
             self._xsheet.previous_layer()
         elif event.keyval == Gdk.KEY_Right:
             self._xsheet.next_layer()
+        elif event.keyval == Gdk.KEY_n:
+            self._view_widget.props.scale -= 0.1
+        elif event.keyval == Gdk.KEY_m:
+            self._view_widget.props.scale += 0.1
