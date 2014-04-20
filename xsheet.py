@@ -144,6 +144,21 @@ class XSheet(GObject.GObject):
             self.layers[layer_idx][frame_idx] = Cel()
             self.emit("frame-changed")
 
+    def clear_cel(self, frame_idx=None, layer_idx=None):
+        if frame_idx is None:
+            frame_idx = self.frame_idx
+
+        if layer_idx is None:
+            layer_idx = self.layer_idx
+
+        cel = self.layers[layer_idx][frame_idx]
+        if cel is None:
+            # FIXME will fail in blanks
+            del self.layers[layer_idx][frame_idx]
+        else:
+            self.layers[layer_idx][frame_idx] = None
+        self.emit("frame-changed")
+
     @property
     def frames_length(self):
         return self._frames_length

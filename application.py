@@ -425,9 +425,7 @@ class Application(GObject.GObject):
         elif event.keyval == Gdk.KEY_e:
             self._toggle_eraser()
         elif event.keyval == Gdk.KEY_BackSpace:
-            # FIXME, needs to be done in gegl backend
-            if self._surface is not None:
-                self._surface.clear()
+            self._xsheet.clear_cel()
         elif event.keyval == Gdk.KEY_Left:
             self._xsheet.previous_layer()
         elif event.keyval == Gdk.KEY_Right:
