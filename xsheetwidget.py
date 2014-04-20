@@ -255,8 +255,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
                             (i * CEL_HEIGHT * self._zoom_factor) +
                             CEL_HEIGHT * self._zoom_factor / 2 + height/2)
             context.show_text(text)
+            context.stroke()
 
-    def _draw_cel(self, context, layer_idx, frame_idx, cel):
+    def _draw_cel(self, context, layer_idx, frame_idx, changing):
+        context.set_line_width(STRONG_LINE_WIDTH)
         if frame_idx == self._xsheet.frame_idx:
             context.set_source_rgb(*self._selected_fg_color)
         else:
@@ -265,17 +267,27 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.arc(NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5),
                     CEL_HEIGHT * self._zoom_factor * (frame_idx + 0.5),
                     ELEMENT_CEL_RADIUS, 0, 2 * math.pi)
-        context.fill()
+        if changing:
+            context.fill()
+        else:
+            context.stroke()
 
     def _draw_elements(self, context):
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
-            # FIXME cut the result of layer.get_changing_frames() to
-            # the visible frames.
-            for frame_idx in layer.get_changing_frames():
+            changing_frames = layer.get_changing_frames()
+            first = self._first_visible_frame
+            last = self._last_visible_frames
+
+            for frame_idx in range(first, last):
                 cel = layer[frame_idx]
-                if cel is not None:
-                    self._draw_cel(context, layer_idx, frame_idx, cel)
+                if cel is None:
+                    continue
+
+                if frame_idx in changing_frames:
+                    self._draw_cel(context, layer_idx, frame_idx, True)
+                else:
+                    self._draw_cel(context, layer_idx, frame_idx, False)
 
     def _get_frame_from_point(self, x, y):
         return int((y - self._offset) / CEL_HEIGHT / self._zoom_factor)
