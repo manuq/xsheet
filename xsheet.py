@@ -124,6 +124,15 @@ class XSheet(GObject.GObject):
         layer_idx = self.layer_idx + layer_diff
         return self.layers[layer_idx].get_relative(frame_idx, cel_diff)
 
+    def has_cel(self, frame_idx=None, layer_idx=None):
+        if frame_idx is None:
+            frame_idx = self.frame_idx
+
+        if layer_idx is None:
+            layer_idx = self.layer_idx
+
+        return not self.layers[layer_idx].is_unset_at(frame_idx)
+
     def add_cel(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
             frame_idx = self.frame_idx

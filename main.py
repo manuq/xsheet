@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# FIXME use libmymaint through introspection
 import sys
 sys.path.append("../mypaint")
 

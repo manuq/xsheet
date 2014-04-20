@@ -52,7 +52,6 @@ class Application(GObject.GObject):
         self._view_widget = None
 
         self._eraser_on = False
-        self._force_add_cel = True
 
         self._surface = None
         self._surface_node = None
@@ -298,7 +297,7 @@ class Application(GObject.GObject):
         self._last_event = (x, y, time)
 
     def _button_press_cb(self, widget, event):
-        if self._force_add_cel:
+        if not self._xsheet.has_cel():
             self._xsheet.add_cel()
 
         self._button_pressed = True
@@ -399,9 +398,7 @@ class Application(GObject.GObject):
             self._view_widget.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
-        if event.keyval == Gdk.KEY_c:
-            self._xsheet.add_cel()
-        elif event.keyval == Gdk.KEY_p:
+        if event.keyval == Gdk.KEY_p:
             self._toggle_play_stop()
         elif event.keyval == Gdk.KEY_o:
             self._toggle_onionskin()
