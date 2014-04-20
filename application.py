@@ -41,8 +41,10 @@ class Application(GObject.GObject):
         self._default_radius = brush_info.get_base_value("radius_logarithmic")
         self._brush = brush.Brush(brush_info)
 
-        self._button_pressed = False
-        self._last_event = (0.0, 0.0, 0.0)  # (x, y, time)
+        self._drawing = False
+        self._panning = False
+        self._last_event = None
+        self._last_view_event = (0.0, 0.0, 0.0)  # (x, y, time)
 
         self._onionskin_on = True
         self._onionskin_by_cels = True
@@ -268,43 +270,61 @@ class Application(GObject.GObject):
         background_node.set_property("height", allocation.height)
 
     def _motion_to_cb(self, widget, event):
-        # FIXME, better disconnect
-        if self._surface is None:
-            return
-
         (x, y, time) = event.x, event.y, event.time
 
-        x = (x + self._view_widget.props.x) / self._view_widget.props.scale
-        y = (y + self._view_widget.props.y) / self._view_widget.props.scale
+        view_x = ((x + self._view_widget.props.x) /
+                  self._view_widget.props.scale)
+        view_y = ((y + self._view_widget.props.y) /
+                  self._view_widget.props.scale)
 
-        pressure = event.get_axis(Gdk.AxisUse.PRESSURE)
-        if pressure is None:
-            pressure = 0.5
+        if self._drawing:
+            if self._surface is None:
+                return
 
-        xtilt = event.get_axis(Gdk.AxisUse.XTILT)
-        ytilt = event.get_axis(Gdk.AxisUse.YTILT)
-        if xtilt is None or ytilt is None:
-            xtilt = 0
-            ytilt = 0
+            pressure = event.get_axis(Gdk.AxisUse.PRESSURE)
+            if pressure is None:
+                pressure = 0.5
 
-        dtime = (time - self._last_event[2])/1000.0
-        if self._button_pressed:
+            xtilt = event.get_axis(Gdk.AxisUse.XTILT)
+            ytilt = event.get_axis(Gdk.AxisUse.YTILT)
+            if xtilt is None or ytilt is None:
+                xtilt = 0
+                ytilt = 0
+
+            dtime = (time - self._last_view_event[2])/1000.0
+
             self._surface.begin_atomic()
-            self._brush.stroke_to(self._surface.backend, x, y, pressure, xtilt,
-                                  ytilt, dtime)
+            self._brush.stroke_to(self._surface.backend, view_x, view_y,
+                                  pressure, xtilt, ytilt, dtime)
             self._surface.end_atomic()
 
-        self._last_event = (x, y, time)
+        elif self._panning:
+            if self._last_event is not None:
+                self._view_widget.props.x -= x - self._last_event[0]
+                self._view_widget.props.y -= y - self._last_event[1]
+
+            self._last_event = (x, y, time)
+
+        self._last_view_event = (view_x, view_y, time)
 
     def _button_press_cb(self, widget, event):
-        if not self._xsheet.has_cel():
-            self._xsheet.add_cel()
+        if event.button == 1:
+            self._drawing = True
 
-        self._button_pressed = True
+            if not self._xsheet.has_cel():
+                self._xsheet.add_cel()
+
+        elif event.button == 2:
+            self._panning = True
 
     def _button_release_cb(self, widget, event):
-        self._button_pressed = False
-        self._brush.reset()
+        if event.button == 1:
+            self._drawing = False
+            self._brush.reset()
+
+        elif event.button == 2:
+            self._panning = False
+            self._last_event = None
 
     def _xsheet_changed_cb(self, xsheet):
         self._update_surface()

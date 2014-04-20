@@ -53,8 +53,8 @@ class _XSheetDrawing(Gtk.DrawingArea):
         self._last_visible_frames = 0
         self._zoom_factor = 1.0
         self._scrubbing = False
-        self._dragging = False
-        self._drag_start = 0
+        self._panning = False
+        self._pan_start = 0
         self._zooming = False
         self._zoom_start = 0
         self._zoom_start_factor = None
@@ -284,23 +284,23 @@ class _XSheetDrawing(Gtk.DrawingArea):
         if event.button == 1:
             self._scrubbing = True
         elif event.button == 2:
-            self._dragging = True
-            self._drag_start = event.y
+            self._panning = True
+            self._pan_start = event.y
         elif event.button == 3:
             self._zooming = True
             self._zoom_start = event.y
             self._zoom_start_factor = self._zoom_factor
 
     def _button_release_cb(self, widget, event):
-        if not self._scrubbing and not self._dragging and not self._zooming:
+        if not self._scrubbing and not self._panning and not self._zooming:
             frame_idx = self._get_frame_from_point(event.x, event.y)
             self._xsheet.go_to_frame(frame_idx)
 
         if self._scrubbing:
             self._scrubbing = False
-        if self._dragging:
-            self._dragging = False
-            self._drag_start = 0
+        if self._panning:
+            self._panning = False
+            self._pan_start = 0
         if self._zooming:
             self._zooming = False
             self._zoom_start = 0
@@ -311,10 +311,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
         frame_idx = self._get_frame_from_point(event.x, event.y)
         if self._scrubbing:
             self._xsheet.go_to_frame(frame_idx)
-        elif self._dragging:
-            dy = (self._drag_start - event.y) / self.virtual_height
+        elif self._panning:
+            dy = (self._pan_start - event.y) / self.virtual_height
             self._adjustment.props.value += dy
-            self._drag_start = event.y
+            self._pan_start = event.y
         elif self._zooming:
             self._zoom_by_offset(self._zoom_start - event.y)
 
