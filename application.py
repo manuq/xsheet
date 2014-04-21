@@ -13,6 +13,8 @@ from xsheet import XSheet
 from xsheetwidget import XSheetWidget
 from metronome import Metronome
 from settingsdialog import SettingsDialog
+from giutils import set_base_value, get_base_value
+from giutils import set_base_color
 
 
 def print_connections(node):
@@ -36,12 +38,9 @@ class Application(GObject.GObject):
         self._brush = MyPaint.Brush()
         brush_def = open('../mypaint/brushes/classic/charcoal.myb').read()
         self._brush.from_string(brush_def)
-        self._brush.set_base_value(MyPaint.BrushSetting.SETTING_COLOR_H, 0.0)
-        self._brush.set_base_value(MyPaint.BrushSetting.SETTING_COLOR_S,0.0)
-        self._brush.set_base_value(MyPaint.BrushSetting.SETTING_COLOR_V, 0.0)
-        self._default_eraser = self._brush.get_base_value(MyPaint.BrushSetting.SETTING_ERASER)
-        self._default_radius = self._brush.get_base_value(MyPaint.BrushSetting.SETTING_RADIUS_LOGARITHMIC)
-
+        set_base_color(self._brush, (0.0, 0.5, 0.8))
+        self._default_eraser = get_base_value(self._brush, "eraser")
+        self._default_radius = get_base_value(self._brush, "radius_logarithmic")
 
         self._drawing = False
         self._panning = False
@@ -374,14 +373,13 @@ class Application(GObject.GObject):
         eraser_setting = MyPaint.BrushSetting.SETTING_ERASER
         radius_setting = MyPaint.BrushSetting.SETTING_RADIUS_LOGARITHMIC
         if self._eraser_on:
-            self._brush.set_base_value(eraser_setting, 1.0)
-            self._brush.set_base_value(radius_setting,
-                                       self._default_radius * 3)
+            set_base_value(self._brush, "eraser", 1.0)
+            set_base_value(self._brush, "radius_logarithmic",
+                           self._default_radius * 3)
         else:
-            self._brush.set_base_value(eraser_setting,
-                                       self._default_eraser)
-            self._brush.set_base_value(radius_setting,
-                                       self._default_radius)
+            set_base_value(self._brush, "eraser", self._default_eraser)
+            set_base_value(self._brush, "radius_logarithmic",
+                           self._default_radius)
 
     def _toggle_eraser_cb(self, widget):
         self._toggle_eraser()
