@@ -1,14 +1,15 @@
 from gi.repository import GObject
-
-from lib import tiledsurface
+from gi.repository import MyPaintGegl
 
 from cellist import CelList
 
 
 class Cel(object):
-    def __init__(self):
-        self.surface = tiledsurface.GeglSurface()
-        self.surface_node = self.surface.get_node()
+    def __init__(self, graph):
+        self._gegl_surface = MyPaintGegl.TiledSurface()
+        self.surface = self._gegl_surface.interface()
+        self.surface_node = graph.create_child("gegl:buffer-source")
+        self.surface_node.set_property("buffer", self._gegl_surface.get_buffer())
 
 
 class XSheet(GObject.GObject):
@@ -133,7 +134,7 @@ class XSheet(GObject.GObject):
 
         return not self.layers[layer_idx].is_unset_at(frame_idx)
 
-    def add_cel(self, frame_idx=None, layer_idx=None):
+    def add_cel(self, graph, frame_idx=None, layer_idx=None):
         if frame_idx is None:
             frame_idx = self.frame_idx
 
@@ -141,7 +142,7 @@ class XSheet(GObject.GObject):
             layer_idx = self.layer_idx
 
         if self.layers[layer_idx].is_unset_at(frame_idx):
-            self.layers[layer_idx][frame_idx] = Cel()
+            self.layers[layer_idx][frame_idx] = Cel(graph)
             self.emit("frame-changed")
 
     def clear_cel(self, frame_idx=None, layer_idx=None):

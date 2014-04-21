@@ -7,8 +7,7 @@ from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
 from gi.repository import GeglGtk3 as GeglGtk
-
-from lib import brush
+from gi.repository import MyPaint
 
 from xsheet import XSheet
 from xsheetwidget import XSheetWidget
@@ -34,12 +33,15 @@ class Application(GObject.GObject):
     def __init__(self):
         GObject.GObject.__init__(self)
 
-        brush_file = open('../mypaint/brushes/classic/charcoal.myb')
-        brush_info = brush.BrushInfo(brush_file.read())
-        brush_info.set_color_rgb((0.0, 0.0, 0.0))
-        self._default_eraser = brush_info.get_base_value("eraser")
-        self._default_radius = brush_info.get_base_value("radius_logarithmic")
-        self._brush = brush.Brush(brush_info)
+        self._brush = MyPaint.Brush()
+        brush_def = open('../mypaint/brushes/classic/charcoal.myb').read()
+        self._brush.from_string(brush_def)
+        self._brush.set_base_value(MyPaint.BrushSetting.SETTING_COLOR_H, 0.0)
+        self._brush.set_base_value(MyPaint.BrushSetting.SETTING_COLOR_S,0.0)
+        self._brush.set_base_value(MyPaint.BrushSetting.SETTING_COLOR_V, 0.0)
+        self._default_eraser = self._brush.get_base_value(MyPaint.BrushSetting.SETTING_ERASER)
+        self._default_radius = self._brush.get_base_value(MyPaint.BrushSetting.SETTING_RADIUS_LOGARITHMIC)
+
 
         self._drawing = False
         self._panning = False
@@ -294,7 +296,7 @@ class Application(GObject.GObject):
             dtime = (time - self._last_view_event[2])/1000.0
 
             self._surface.begin_atomic()
-            self._brush.stroke_to(self._surface.backend, view_x, view_y,
+            self._brush.stroke_to(self._surface, view_x, view_y,
                                   pressure, xtilt, ytilt, dtime)
             self._surface.end_atomic()
 
@@ -312,7 +314,7 @@ class Application(GObject.GObject):
             self._drawing = True
 
             if not self._xsheet.has_cel():
-                self._xsheet.add_cel()
+                self._xsheet.add_cel(self._graph)
 
         elif event.button == 2:
             self._panning = True
@@ -369,15 +371,17 @@ class Application(GObject.GObject):
     def _toggle_eraser(self):
         self._eraser_on = not self._eraser_on
 
+        eraser_setting = MyPaint.BrushSetting.SETTING_ERASER
+        radius_setting = MyPaint.BrushSetting.SETTING_RADIUS_LOGARITHMIC
         if self._eraser_on:
-            self._brush.brushinfo.set_base_value("eraser", 1.0)
-            self._brush.brushinfo.set_base_value("radius_logarithmic",
-                                                 self._default_radius * 3)
+            self._brush.set_base_value(eraser_setting, 1.0)
+            self._brush.set_base_value(radius_setting,
+                                       self._default_radius * 3)
         else:
-            self._brush.brushinfo.set_base_value("eraser",
-                                                 self._default_eraser)
-            self._brush.brushinfo.set_base_value("radius_logarithmic",
-                                                 self._default_radius)
+            self._brush.set_base_value(eraser_setting,
+                                       self._default_eraser)
+            self._brush.set_base_value(radius_setting,
+                                       self._default_radius)
 
     def _toggle_eraser_cb(self, widget):
         self._toggle_eraser()
