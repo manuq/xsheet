@@ -38,7 +38,7 @@ class Application(GObject.GObject):
         self._brush = MyPaint.Brush()
         brush_def = open('../mypaint/brushes/classic/charcoal.myb').read()
         self._brush.from_string(brush_def)
-        set_base_color(self._brush, (0.0, 0.5, 0.8))
+        set_base_color(self._brush, (0.0, 0.0, 0.0))
         self._default_eraser = get_base_value(self._brush, "eraser")
         self._default_radius = get_base_value(self._brush, "radius_logarithmic")
 
