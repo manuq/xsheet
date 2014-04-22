@@ -17,6 +17,7 @@ SOFT_LINE_WIDTH = 0.2
 STRONG_LINE_WIDTH = 0.5
 SECONDS_LINE_WIDTH = 1.0
 ELEMENT_CEL_RADIUS = 3.0
+CLEAR_RADIUS = 4
 
 
 def _get_cairo_color(gdk_color):
@@ -272,6 +273,24 @@ class _XSheetDrawing(Gtk.DrawingArea):
         else:
             context.fill()
 
+    def _draw_clear(self, context, layer_idx, frame):
+        context.set_line_width(STRONG_LINE_WIDTH * 3)
+        if frame == self._xsheet.current_frame:
+            context.set_source_rgb(*self._selected_fg_color)
+        else:
+            context.set_source_rgb(*self._fg_color)
+
+        center_x = NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5)
+        center_y = CEL_HEIGHT * self._zoom_factor * (frame + 0.5)
+
+        context.move_to(center_x - CLEAR_RADIUS, center_y - CLEAR_RADIUS)
+        context.line_to(center_x + CLEAR_RADIUS, center_y + CLEAR_RADIUS)
+        context.stroke()
+        context.move_to(center_x - CLEAR_RADIUS, center_y + CLEAR_RADIUS)
+        context.line_to(center_x + CLEAR_RADIUS, center_y - CLEAR_RADIUS)
+        context.stroke()
+
+
     def _draw_elements(self, context):
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
@@ -279,10 +298,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
             last = self._last_visible_frames
 
             for frame in range(first, last):
-                if layer.get_type_at(frame) == 'clear':
+                if layer.get_type_at(frame) == 'repeat clear':
                     continue
-                elif layer.get_type_at(frame) == 'repeat clear':
-                    continue
+                elif layer.get_type_at(frame) == 'clear':
+                    self._draw_clear(context, layer_idx, frame)
                 elif layer.get_type_at(frame) == 'cel':
                     self._draw_cel(context, layer_idx, frame, repeat=False)
                 elif layer.get_type_at(frame) == 'repeat cel':
