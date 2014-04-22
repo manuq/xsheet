@@ -184,7 +184,7 @@ class Application(GObject.GObject):
 
         factory = Gtk.IconFactory()
         icon_names = ['xsheet-onionskin', 'xsheet-play', 'xsheet-eraser',
-                      'xsheet-metronome', 'xsheet-settings',
+                      'xsheet-clear', 'xsheet-metronome', 'xsheet-settings',
                       'xsheet-prev-layer', 'xsheet-next-layer']
         for name in icon_names:
             filename = os.path.join('data', 'icons', name + '.svg')
@@ -211,6 +211,12 @@ class Application(GObject.GObject):
         eraser_button.connect("toggled", self._toggle_eraser_cb)
         toolbar.insert(eraser_button, -1)
         eraser_button.show()
+
+        clear_button = Gtk.ToolButton()
+        clear_button.set_stock_id("xsheet-clear")
+        clear_button.connect("clicked", self._clear_click_cb)
+        toolbar.insert(clear_button, -1)
+        clear_button.show()
 
         metronome_button = Gtk.ToggleToolButton()
         metronome_button.set_stock_id("xsheet-metronome")
@@ -383,6 +389,9 @@ class Application(GObject.GObject):
 
     def _toggle_eraser_cb(self, widget):
         self._toggle_eraser()
+
+    def _clear_click_cb(self, widget):
+        self._xsheet.clear_cel()
 
     def _toggle_metronome(self):
         if self._metronome.is_on():
