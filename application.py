@@ -53,6 +53,7 @@ class Application(GObject.GObject):
         self._onionskin_falloff = 0.5
 
         self._view_widget = None
+        self._xsheet_widget = None
 
         self._eraser_on = False
 
@@ -264,9 +265,9 @@ class Application(GObject.GObject):
         event_box.add(self._view_widget)
         self._view_widget.show()
 
-        xsheet_widget = XSheetWidget(self._xsheet)
-        top_box.attach(xsheet_widget, 1, 1, 1, 1)
-        xsheet_widget.show()
+        self._xsheet_widget = XSheetWidget(self._xsheet)
+        top_box.attach(self._xsheet_widget, 1, 1, 1, 1)
+        self._xsheet_widget.show()
 
     def _destroy_cb(self, *ignored):
         Gtk.main_quit()
@@ -445,3 +446,8 @@ class Application(GObject.GObject):
             self._view_widget.props.scale -= 0.1
         elif event.keyval == Gdk.KEY_m:
             self._view_widget.props.scale += 0.1
+        elif event.keyval == Gdk.KEY_Tab:
+            if self._xsheet_widget.is_visible():
+                self._xsheet_widget.hide()
+            else:
+                self._xsheet_widget.show()
