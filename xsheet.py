@@ -145,23 +145,15 @@ class XSheet(GObject.GObject):
             self.layers[layer_idx][frame_idx] = Cel(graph)
             self.emit("frame-changed")
 
-    def clear_cel(self, frame_idx=None, layer_idx=None):
+    def remove_clear(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
             frame_idx = self.current_frame
 
         if layer_idx is None:
             layer_idx = self.layer_idx
 
-        if self.layers[layer_idx].has_clear_at(frame_idx):
-            del self.layers[layer_idx][frame_idx]
-            self.emit("frame-changed")
-            return True
-        elif self.layers[layer_idx].has_repeat_at([frame_idx]):
-            self.layers[layer_idx][frame_idx] = None
-            self.emit("frame-changed")
-            return True
-
-        return False
+        self.layers[layer_idx].remove_clear(frame_idx)
+        self.emit("frame-changed")
 
     @property
     def frames_length(self):

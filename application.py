@@ -212,11 +212,11 @@ class Application(GObject.GObject):
         toolbar.insert(eraser_button, -1)
         eraser_button.show()
 
-        clear_button = Gtk.ToolButton()
-        clear_button.set_stock_id("xsheet-clear")
-        clear_button.connect("clicked", self._clear_click_cb)
-        toolbar.insert(clear_button, -1)
-        clear_button.show()
+        remove_clear_button = Gtk.ToolButton()
+        remove_clear_button.set_stock_id("xsheet-clear")
+        remove_clear_button.connect("clicked", self._remove_clear_click_cb)
+        toolbar.insert(remove_clear_button, -1)
+        remove_clear_button.show()
 
         metronome_button = Gtk.ToggleToolButton()
         metronome_button.set_stock_id("xsheet-metronome")
@@ -390,8 +390,8 @@ class Application(GObject.GObject):
     def _toggle_eraser_cb(self, widget):
         self._toggle_eraser()
 
-    def _clear_click_cb(self, widget):
-        self._xsheet.clear_cel()
+    def _remove_clear_click_cb(self, widget):
+        self._xsheet.remove_clear()
 
     def _toggle_metronome(self):
         if self._metronome.is_on():
@@ -436,7 +436,7 @@ class Application(GObject.GObject):
         elif event.keyval == Gdk.KEY_e:
             self._toggle_eraser()
         elif event.keyval == Gdk.KEY_BackSpace:
-            self._xsheet.clear_cel()
+            self._xsheet.remove_clear()
         elif event.keyval == Gdk.KEY_Left:
             self._xsheet.previous_layer()
         elif event.keyval == Gdk.KEY_Right:

@@ -77,6 +77,12 @@ class FrameList(object):
         except IndexError:
             return None
 
+    def remove_clear(self, frame):
+        if self.has_cel_at(frame) or self.has_clear_at(frame):
+            del self[frame]
+        else:
+            self[frame] = None
+
 
 __test__ = dict(allem="""
 
@@ -178,7 +184,13 @@ False
 >>> frames.has_cel_at(3)
 True
 
+>>> frames.has_repeat_at(3)
+False
+
 >>> frames.has_cel_at(6)
+False
+
+>>> frames.has_repeat_at(6)
 False
 
 >>> frames.has_repeat_at(4)
@@ -263,6 +275,31 @@ value:
 >>> del frames[3]
 Traceback (most recent call last):
 KeyError: 3
+
+Is better to use remove_clear.  It will:
+- remove the cel, if there is a cel
+- mark clear, if the frame repeats
+- remove clear, thus repeating, if the frame has clear
+
+>>> frames.remove_clear(3)
+
+>>> frames.get_content_sublist()
+['a', 'a', None, None, None, None]
+
+>>> frames.remove_clear(3)
+
+>>> frames.get_content_sublist()
+['a', 'a', 'a', 'a', 'a', None]
+
+>>> frames[2] = 'z'
+
+>>> frames.get_content_sublist()
+['a', 'z', 'z', 'z', 'z', None]
+
+>>> frames.remove_clear(2)
+
+>>> frames.get_content_sublist()
+['a', 'a', 'a', 'a', 'a', None]
 
 Another example:
 
