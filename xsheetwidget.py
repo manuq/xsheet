@@ -104,10 +104,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
         return False
 
     def _xsheet_changed_cb(self, xsheet):
-        if (self._xsheet.frame_idx < self._first_visible_frame):
+        if (self._xsheet.current_frame < self._first_visible_frame):
             self._adjustment.props.value -= self._adjustment.props.page_size
 
-        if (self._xsheet.frame_idx >= self._last_visible_frames):
+        if (self._xsheet.current_frame >= self._last_visible_frames):
             self._adjustment.props.value += self._adjustment.props.page_size
 
         self.queue_draw()
@@ -162,12 +162,12 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.fill()
 
     def _draw_selected_row(self, context):
-        skip_draw = (self._xsheet.frame_idx < self._first_visible_frame or
-                     self._xsheet.frame_idx > self._last_visible_frames)
+        skip_draw = (self._xsheet.current_frame < self._first_visible_frame or
+                     self._xsheet.current_frame > self._last_visible_frames)
         if skip_draw:
             return
 
-        y = self._xsheet.frame_idx * CEL_HEIGHT * self._zoom_factor
+        y = self._xsheet.current_frame * CEL_HEIGHT * self._zoom_factor
         width = context.get_target().get_width()
         context.set_source_rgb(*self._selected_color)
         context.rectangle(0, y, width, CEL_HEIGHT * self._zoom_factor)
@@ -244,7 +244,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
             if i % draw_step != 0:
                 continue
 
-            if i == self._xsheet.frame_idx:
+            if i == self._xsheet.current_frame:
                 context.set_source_rgb(*self._selected_fg_color)
             else:
                 context.set_source_rgb(*self._fg_color)
@@ -257,37 +257,36 @@ class _XSheetDrawing(Gtk.DrawingArea):
             context.show_text(text)
             context.stroke()
 
-    def _draw_cel(self, context, layer_idx, frame_idx, changing):
+    def _draw_cel(self, context, layer_idx, frame, repeat):
         context.set_line_width(STRONG_LINE_WIDTH)
-        if frame_idx == self._xsheet.frame_idx:
+        if frame == self._xsheet.current_frame:
             context.set_source_rgb(*self._selected_fg_color)
         else:
             context.set_source_rgb(*self._fg_color)
 
         context.arc(NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5),
-                    CEL_HEIGHT * self._zoom_factor * (frame_idx + 0.5),
+                    CEL_HEIGHT * self._zoom_factor * (frame + 0.5),
                     ELEMENT_CEL_RADIUS, 0, 2 * math.pi)
-        if changing:
-            context.fill()
-        else:
+        if repeat:
             context.stroke()
+        else:
+            context.fill()
 
     def _draw_elements(self, context):
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
-            changing_frames = layer.get_changing_frames()
             first = self._first_visible_frame
             last = self._last_visible_frames
 
-            for frame_idx in range(first, last):
-                cel = layer[frame_idx]
-                if cel is None:
+            for frame in range(first, last):
+                if layer.get_type_at(frame) == 'clear':
                     continue
-
-                if frame_idx in changing_frames:
-                    self._draw_cel(context, layer_idx, frame_idx, True)
-                else:
-                    self._draw_cel(context, layer_idx, frame_idx, False)
+                elif layer.get_type_at(frame) == 'repeat clear':
+                    continue
+                elif layer.get_type_at(frame) == 'cel':
+                    self._draw_cel(context, layer_idx, frame, repeat=False)
+                elif layer.get_type_at(frame) == 'repeat cel':
+                    self._draw_cel(context, layer_idx, frame, repeat=True)
 
     def _get_frame_from_point(self, x, y):
         return int((y - self._offset) / CEL_HEIGHT / self._zoom_factor)
@@ -305,8 +304,8 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
     def _button_release_cb(self, widget, event):
         if not self._scrubbing and not self._panning and not self._zooming:
-            frame_idx = self._get_frame_from_point(event.x, event.y)
-            self._xsheet.go_to_frame(frame_idx)
+            frame = self._get_frame_from_point(event.x, event.y)
+            self._xsheet.go_to_frame(frame)
 
         if self._scrubbing:
             self._scrubbing = False
@@ -320,9 +319,9 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
     def _motion_notify_cb(self, widget, event):
         x, y = event.x, event.y
-        frame_idx = self._get_frame_from_point(event.x, event.y)
+        frame = self._get_frame_from_point(event.x, event.y)
         if self._scrubbing:
-            self._xsheet.go_to_frame(frame_idx)
+            self._xsheet.go_to_frame(frame)
         elif self._panning:
             dy = (self._pan_start - event.y) / self.virtual_height
             self._adjustment.props.value += dy

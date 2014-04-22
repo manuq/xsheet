@@ -1,7 +1,7 @@
 from gi.repository import GObject
 from gi.repository import MyPaintGegl
 
-from cellist import CelList
+from framelist import FrameList
 
 
 class Cel(object):
@@ -22,9 +22,9 @@ class XSheet(GObject.GObject):
         GObject.GObject.__init__(self)
 
         self._frames_length = frames_length
-        self.frame_idx = 0
+        self.current_frame = 0
         self.layer_idx = 0
-        self.layers = [CelList() for x in range(layers_length)]
+        self.layers = [FrameList() for x in range(layers_length)]
         self._play_hid = None
 
     def get_layers(self):
@@ -32,39 +32,39 @@ class XSheet(GObject.GObject):
 
     def go_to_frame(self, frame_idx):
         cant_go = (frame_idx < 0 or frame_idx > self.frames_length-1 or
-                   frame_idx == self.frame_idx)
+                   frame_idx == self.current_frame)
         if cant_go:
             return False
 
-        self.frame_idx = frame_idx
+        self.current_frame = frame_idx
 
         self.emit("frame-changed")
         return True
 
     def previous_frame(self, loop=False):
         if not loop:
-            if self.frame_idx == 0:
+            if self.current_frame == 0:
                 return False
         else:
-            if self.frame_idx == 0:
-                self.frame_idx = self.frames_length-1
+            if self.current_frame == 0:
+                self.current_frame = self.frames_length-1
                 return True
 
-        self.frame_idx -= 1
+        self.current_frame -= 1
 
         self.emit("frame-changed")
         return True
 
     def next_frame(self, loop=False):
         if not loop:
-            if self.frame_idx == self.frames_length-1:
+            if self.current_frame == self.frames_length-1:
                 return False
         else:
-            if self.frame_idx == self.frames_length-1:
-                self.frame_idx = 0
+            if self.current_frame == self.frames_length-1:
+                self.current_frame = 0
                 return True
 
-        self.frame_idx += 1
+        self.current_frame += 1
 
         self.emit("frame-changed")
         return True
@@ -108,7 +108,7 @@ class XSheet(GObject.GObject):
 
     def get_cel(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
-            frame_idx = self.frame_idx
+            frame_idx = self.current_frame
 
         if layer_idx is None:
             layer_idx = self.layer_idx
@@ -116,49 +116,52 @@ class XSheet(GObject.GObject):
         return self.layers[layer_idx][frame_idx]
 
     def get_cel_relative(self, frame_diff=0, layer_diff=0):
-        frame_idx = self.frame_idx + frame_diff
+        frame_idx = self.current_frame + frame_diff
         layer_idx = self.layer_idx + layer_diff
         return self.layers[layer_idx][frame_idx]
 
-    def get_cel_relative_by_cels(self, cel_diff, frame_diff=0, layer_diff=0):
-        frame_idx = self.frame_idx + frame_diff
+    def get_cel_relative_by_cels(self, steps, frame_diff=0, layer_diff=0):
+        frame_idx = self.current_frame + frame_diff
         layer_idx = self.layer_idx + layer_diff
-        return self.layers[layer_idx].get_relative(frame_idx, cel_diff)
+        return self.layers[layer_idx].get_relative(frame_idx, steps)
 
     def has_cel(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
-            frame_idx = self.frame_idx
+            frame_idx = self.current_frame
 
         if layer_idx is None:
             layer_idx = self.layer_idx
 
-        return not self.layers[layer_idx].is_unset_at(frame_idx)
+        return self.layers[layer_idx].has_cel_at(frame_idx)
 
     def add_cel(self, graph, frame_idx=None, layer_idx=None):
         if frame_idx is None:
-            frame_idx = self.frame_idx
+            frame_idx = self.current_frame
 
         if layer_idx is None:
             layer_idx = self.layer_idx
 
-        if self.layers[layer_idx].is_unset_at(frame_idx):
+        if not self.layers[layer_idx].has_cel_at(frame_idx):
             self.layers[layer_idx][frame_idx] = Cel(graph)
             self.emit("frame-changed")
 
     def clear_cel(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
-            frame_idx = self.frame_idx
+            frame_idx = self.current_frame
 
         if layer_idx is None:
             layer_idx = self.layer_idx
 
-        cel = self.layers[layer_idx][frame_idx]
-        if cel is None:
-            # FIXME will fail in blanks
+        if self.layers[layer_idx].has_clear_at(frame_idx):
             del self.layers[layer_idx][frame_idx]
-        else:
+            self.emit("frame-changed")
+            return True
+        elif self.layers[layer_idx].has_repeat_at([frame_idx]):
             self.layers[layer_idx][frame_idx] = None
-        self.emit("frame-changed")
+            self.emit("frame-changed")
+            return True
+
+        return False
 
     @property
     def frames_length(self):

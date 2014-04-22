@@ -59,7 +59,7 @@ class Metronome(object):
         self._player.set_state(Gst.State.NULL)
 
     def _xsheet_changed_cb(self, xsheet):
-        if xsheet.frame_idx % 24 == 0:
+        if xsheet.current_frame % 24 == 0:
             self._tick(self._strong_tick_sound_path)
-        elif xsheet.frame_idx % xsheet.frames_separation == 0:
+        elif xsheet.current_frame % xsheet.frames_separation == 0:
             self._tick(self._soft_tick_sound_path)
