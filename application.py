@@ -36,24 +36,13 @@ class Application(GObject.GObject):
     def __init__(self):
         GObject.GObject.__init__(self)
 
-        brush = MyPaint.Brush()
-        brush_def = open('../mypaint/brushes/classic/charcoal.myb').read()
-        brush.from_string(brush_def)
-        set_base_color(brush, (0.0, 0.0, 0.0))
-        self._default_eraser = get_base_value(brush, "eraser")
-        self._default_radius = get_base_value(brush, "radius_logarithmic")
-        _settings['brush'] = brush
-
-        self._onionskin_on = True
-        self._onionskin_by_cels = True
-        self._onionskin_length = 3
-        self._onionskin_falloff = 0.5
+        self._set_default_settings()
 
         self._canvas_widget = None
         self._xsheet_widget = None
 
-        self._eraser_on = False
-
+        self._graph = None
+        self._nodes = {}
         self._surface_node = None
 
         self._xsheet = XSheet(24 * 60)
@@ -62,15 +51,30 @@ class Application(GObject.GObject):
 
         self._metronome = Metronome(self._xsheet)
 
-        self._graph = None
-        self._nodes = {}
         self._create_graph()
         self._init_ui()
-
         self._update_surface()
 
     def run(self):
         return Gtk.main()
+
+    def _set_default_settings(self):
+        brush = MyPaint.Brush()
+        brush_def = open('../mypaint/brushes/classic/charcoal.myb').read()
+        brush.from_string(brush_def)
+        set_base_color(brush, (0.0, 0.0, 0.0))
+        self._default_eraser = get_base_value(brush, "eraser")
+        self._default_radius = get_base_value(brush, "radius_logarithmic")
+        _settings['brush'] = brush
+
+        _settings['onionskin'] = {}
+        _settings['onionskin']['on'] = True
+        _settings['onionskin']['by_cels'] = True
+        _settings['onionskin']['length'] = 3
+        _settings['onionskin']['falloff'] = 0.5
+
+        _settings['eraser'] = {}
+        _settings['eraser']['on'] = False
 
     def _create_graph(self):
         self._graph = Gegl.Node()
@@ -104,12 +108,13 @@ class Application(GObject.GObject):
 
             onionskin_overs = []
             onionskin_opacities = []
-            for i in range(self._onionskin_length):
+            for i in range(_settings['onionskin']['length']):
                 over = self._graph.create_child("gegl:over")
                 onionskin_overs.append(over)
 
                 opacity = self._graph.create_child("gegl:opacity")
-                opacity.set_property('value', 1 - self._onionskin_falloff)
+                falloff = _settings['onionskin']['falloff']
+                opacity.set_property('value', 1 - falloff)
                 onionskin_opacities.append(opacity)
 
                 over.connect_to("output", opacity, "input")
@@ -133,7 +138,7 @@ class Application(GObject.GObject):
 
     def _update_graph(self):
         get_cel = None
-        if self._onionskin_by_cels:
+        if _settings['onionskin']['by_cels']:
             get_cel = self._xsheet.get_cel_relative_by_cels
         else:
             get_cel = self._xsheet.get_cel_relative
@@ -148,11 +153,11 @@ class Application(GObject.GObject):
             else:
                 layer_nodes['current_cel_over'].disconnect("input")
 
-            if not self._onionskin_on:
+            if not _settings['onionskin']['on']:
                 continue
 
             layer_diff = layer_idx - self._xsheet.layer_idx
-            for i in range(self._onionskin_length):
+            for i in range(_settings['onionskin']['length']):
                 prev_cel = get_cel(-(i+1), layer_diff=layer_diff)
                 over = layer_nodes['onionskin']['overs'][i]
 
@@ -288,13 +293,13 @@ class Application(GObject.GObject):
         self._toggle_play_stop()
 
     def _toggle_onionskin(self):
-        self._onionskin_on = not self._onionskin_on
+        _settings['onionskin']['on'] = not _settings['onionskin']['on']
 
         for layer_idx in range(self._xsheet.layers_length):
             layer_nodes = self._nodes['layer_nodes'][layer_idx]
             onionskin_opacities = layer_nodes['onionskin']['opacities']
             current_cel_over = layer_nodes['current_cel_over']
-            if self._onionskin_on:
+            if _settings['onionskin']['on']:
                 onionskin_opacities[0].connect_to("output", current_cel_over,
                                                   "aux")
             else:
@@ -306,10 +311,10 @@ class Application(GObject.GObject):
         self._toggle_onionskin()
 
     def _toggle_eraser(self):
-        self._eraser_on = not self._eraser_on
+        _settings['eraser']['on'] = not _settings['eraser']['on']
 
         brush = _settings['brush']
-        if self._eraser_on:
+        if _settings['eraser']['on']:
             set_base_value(brush, "eraser", 1.0)
             set_base_value(brush, "radius_logarithmic",
                            self._default_radius * 3)
