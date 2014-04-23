@@ -356,13 +356,13 @@ class Application(GObject.GObject):
         elif event.keyval == Gdk.KEY_Down:
             self._xsheet.next_frame()
         elif event.keyval == Gdk.KEY_h:
-            self._view_widget.props.x -= 10 * scale
+            self._canvas_widget.view.props.x -= 10 * scale
         elif event.keyval == Gdk.KEY_l:
-            self._view_widget.props.x += 10 * scale
+            self._canvas_widget.view.props.x += 10 * scale
         elif event.keyval == Gdk.KEY_k:
-            self._view_widget.props.y -= 10 * scale
+            self._canvas_widget.view.props.y -= 10 * scale
         elif event.keyval == Gdk.KEY_j:
-            self._view_widget.props.y += 10 * scale
+            self._canvas_widget.view.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
         if event.keyval == Gdk.KEY_p:
@@ -378,9 +378,9 @@ class Application(GObject.GObject):
         elif event.keyval == Gdk.KEY_Right:
             self._xsheet.next_layer()
         elif event.keyval == Gdk.KEY_n:
-            self._view_widget.props.scale -= 0.1
+            self._canvas_widget.view.props.scale -= 0.1
         elif event.keyval == Gdk.KEY_m:
-            self._view_widget.props.scale += 0.1
+            self._canvas_widget.view.props.scale += 0.1
         elif event.keyval == Gdk.KEY_Tab:
             if self._xsheet_widget.is_visible():
                 self._xsheet_widget.hide()
