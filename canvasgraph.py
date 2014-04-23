@@ -33,13 +33,13 @@ class CanvasGraph(object):
 
     @property
     def root_node(self):
-        return self._nodes['main_over']
+        return self._nodes['root_node']
 
     def _create_graph(self):
         self._graph = Gegl.Node()
 
-        main_over = self._graph.create_child("gegl:over")
-        self._nodes['main_over'] = main_over
+        root_node = self._graph.create_child("gegl:noop")
+        self._nodes['root_node'] = root_node
 
         layer_overs = []
         for l in range(self._xsheet.layers_length):
@@ -48,7 +48,7 @@ class CanvasGraph(object):
 
         self._nodes['layer_overs'] = layer_overs
 
-        layer_overs[0].connect_to("output", main_over, "input")
+        layer_overs[0].connect_to("output", root_node, "input")
 
         for over, next_over in zip(layer_overs, layer_overs[1:]):
             next_over.connect_to("output", over, "input")
@@ -126,7 +126,7 @@ class CanvasGraph(object):
                     over.disconnect("input")
 
         # debug
-        # print_connections(self._nodes['main_over'])
+        # print_connections(self._nodes['root_node'])
 
     def _toggle_onionskin(self):
         _settings['onionskin']['on'] = not _settings['onionskin']['on']
