@@ -52,6 +52,7 @@ class Application(GObject.GObject):
         self._metronome = Metronome(self._xsheet)
 
         self._create_graph()
+        self._setup_icons()
         self._init_ui()
         self._update_surface()
 
@@ -75,6 +76,18 @@ class Application(GObject.GObject):
 
         _settings['eraser'] = {}
         _settings['eraser']['on'] = False
+
+    def _setup_icons(self):
+        factory = Gtk.IconFactory()
+        icon_names = ['xsheet-onionskin', 'xsheet-play', 'xsheet-eraser',
+                      'xsheet-clear', 'xsheet-metronome', 'xsheet-settings',
+                      'xsheet-prev-layer', 'xsheet-next-layer']
+        for name in icon_names:
+            filename = os.path.join('data', 'icons', name + '.svg')
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file(filename)
+            iconset = Gtk.IconSet.new_from_pixbuf(pixbuf)
+            factory.add(name, iconset)
+            factory.add_default()
 
     def _create_graph(self):
         self._graph = Gegl.Node()
@@ -184,17 +197,6 @@ class Application(GObject.GObject):
         toolbar = Gtk.Toolbar()
         top_box.attach(toolbar, 0, 0, 2, 1)
         toolbar.show()
-
-        factory = Gtk.IconFactory()
-        icon_names = ['xsheet-onionskin', 'xsheet-play', 'xsheet-eraser',
-                      'xsheet-clear', 'xsheet-metronome', 'xsheet-settings',
-                      'xsheet-prev-layer', 'xsheet-next-layer']
-        for name in icon_names:
-            filename = os.path.join('data', 'icons', name + '.svg')
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file(filename)
-            iconset = Gtk.IconSet.new_from_pixbuf(pixbuf)
-            factory.add(name, iconset)
-            factory.add_default()
 
         play_button = Gtk.ToggleToolButton()
         play_button.set_stock_id("xsheet-play")
