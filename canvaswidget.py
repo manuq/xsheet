@@ -13,6 +13,8 @@ class CanvasWidget(Gtk.EventBox):
         self.props.expand = True
 
         self._xsheet = xsheet
+        self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
+        self._xsheet.connect('layer-changed', self._xsheet_changed_cb)
 
         self._drawing = False
         self._panning = False
@@ -32,12 +34,16 @@ class CanvasWidget(Gtk.EventBox):
         self.connect("button-press-event", self._button_press_cb)
         self.connect("button-release-event", self._button_release_cb)
 
-    def set_surface(self, surface):
-        self._surface = surface
-
     @property
     def view(self):
         return self._view
+
+    def _xsheet_changed_cb(self, xsheet):
+        cel = self._xsheet.get_cel()
+        if cel is not None:
+            self._surface = cel.surface
+        else:
+            self._surface = None
 
     def _motion_to_cb(self, widget, event):
         (x, y, time) = event.x, event.y, event.time

@@ -43,7 +43,6 @@ class Application(GObject.GObject):
 
         self._graph = None
         self._nodes = {}
-        self._surface_node = None
 
         self._xsheet = XSheet(24 * 60)
         self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
@@ -54,7 +53,6 @@ class Application(GObject.GObject):
         self._create_graph()
         self._setup_icons()
         self._init_ui()
-        self._update_surface()
 
     def run(self):
         return Gtk.main()
@@ -273,17 +271,7 @@ class Application(GObject.GObject):
         background_node.set_property("height", allocation.height)
 
     def _xsheet_changed_cb(self, xsheet):
-        self._update_surface()
         self._update_graph()
-
-    def _update_surface(self):
-        cel = self._xsheet.get_cel()
-        if cel is not None:
-            self._canvas_widget.set_surface(cel.surface)
-            self._surface_node = cel.surface_node
-        else:
-            self._canvas_widget.set_surface(None)
-            self._surface_node = None
 
     def _toggle_play_stop(self):
         if self._xsheet.is_playing:
