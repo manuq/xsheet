@@ -6,16 +6,17 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
-from gi.repository import GeglGtk3 as GeglGtk
 from gi.repository import MyPaint
 
 from xsheet import XSheet
+from canvaswidget import CanvasWidget
 from xsheetwidget import XSheetWidget
 from metronome import Metronome
+from settings import get_settings
 from settingsdialog import SettingsDialog
-from giutils import set_base_value, get_base_value
-from giutils import set_base_color
+from giutils import set_base_value, get_base_value, set_base_color
 
+_settings = get_settings()
 
 def print_connections(node):
     def print_node(node, i=0, pad=''):
@@ -35,29 +36,24 @@ class Application(GObject.GObject):
     def __init__(self):
         GObject.GObject.__init__(self)
 
-        self._brush = MyPaint.Brush()
+        brush = MyPaint.Brush()
         brush_def = open('../mypaint/brushes/classic/charcoal.myb').read()
-        self._brush.from_string(brush_def)
-        set_base_color(self._brush, (0.0, 0.0, 0.0))
-        self._default_eraser = get_base_value(self._brush, "eraser")
-        self._default_radius = get_base_value(self._brush, "radius_logarithmic")
-
-        self._drawing = False
-        self._panning = False
-        self._last_event = None
-        self._last_view_event = (0.0, 0.0, 0.0)  # (x, y, time)
+        brush.from_string(brush_def)
+        set_base_color(brush, (0.0, 0.0, 0.0))
+        self._default_eraser = get_base_value(brush, "eraser")
+        self._default_radius = get_base_value(brush, "radius_logarithmic")
+        _settings['brush'] = brush
 
         self._onionskin_on = True
         self._onionskin_by_cels = True
         self._onionskin_length = 3
         self._onionskin_falloff = 0.5
 
-        self._view_widget = None
+        self._canvas_widget = None
         self._xsheet_widget = None
 
         self._eraser_on = False
 
-        self._surface = None
         self._surface_node = None
 
         self._xsheet = XSheet(24 * 60)
@@ -66,12 +62,12 @@ class Application(GObject.GObject):
 
         self._metronome = Metronome(self._xsheet)
 
-        self._update_surface()
-
         self._graph = None
         self._nodes = {}
         self._create_graph()
         self._init_ui()
+
+        self._update_surface()
 
     def run(self):
         return Gtk.main()
@@ -132,6 +128,7 @@ class Application(GObject.GObject):
 
         self._nodes['layer_nodes'] = layer_nodes
 
+        self._xsheet.set_graph(self._graph)
         self._update_graph()
 
     def _update_graph(self):
@@ -249,21 +246,12 @@ class Application(GObject.GObject):
         toolbar.insert(next_layer_button, -1)
         next_layer_button.show()
 
-        event_box = Gtk.EventBox()
-        event_box.connect("motion-notify-event", self._motion_to_cb)
-        event_box.connect("button-press-event", self._button_press_cb)
-        event_box.connect("button-release-event", self._button_release_cb)
-        top_box.attach(event_box, 0, 1, 1, 1)
-        event_box.props.expand = True
-        event_box.show()
+        self._canvas_widget = CanvasWidget(
+            self._xsheet, root_node=self._nodes['main_over'])
+        top_box.attach(self._canvas_widget, 0, 1, 1, 1)
+        self._canvas_widget.show()
 
-        self._view_widget = GeglGtk.View()
-        self._view_widget.set_node(self._nodes['main_over'])
-        self._view_widget.set_autoscale_policy(GeglGtk.ViewAutoscale.DISABLED)
-        self._view_widget.set_size_request(800, 400)
-        self._view_widget.connect("size-allocate", self._size_allocate_cb)
-        event_box.add(self._view_widget)
-        self._view_widget.show()
+        self._canvas_widget.view.connect("size-allocate", self._size_allocate_cb)
 
         self._xsheet_widget = XSheetWidget(self._xsheet)
         top_box.attach(self._xsheet_widget, 1, 1, 1, 1)
@@ -277,63 +265,6 @@ class Application(GObject.GObject):
         background_node.set_property("width", allocation.width)
         background_node.set_property("height", allocation.height)
 
-    def _motion_to_cb(self, widget, event):
-        (x, y, time) = event.x, event.y, event.time
-
-        view_x = ((x + self._view_widget.props.x) /
-                  self._view_widget.props.scale)
-        view_y = ((y + self._view_widget.props.y) /
-                  self._view_widget.props.scale)
-
-        if self._drawing:
-            if self._surface is None:
-                return
-
-            pressure = event.get_axis(Gdk.AxisUse.PRESSURE)
-            if pressure is None:
-                pressure = 0.5
-
-            xtilt = event.get_axis(Gdk.AxisUse.XTILT)
-            ytilt = event.get_axis(Gdk.AxisUse.YTILT)
-            if xtilt is None or ytilt is None:
-                xtilt = 0
-                ytilt = 0
-
-            dtime = (time - self._last_view_event[2])/1000.0
-
-            self._surface.begin_atomic()
-            self._brush.stroke_to(self._surface, view_x, view_y,
-                                  pressure, xtilt, ytilt, dtime)
-            self._surface.end_atomic()
-
-        elif self._panning:
-            if self._last_event is not None:
-                self._view_widget.props.x -= x - self._last_event[0]
-                self._view_widget.props.y -= y - self._last_event[1]
-
-            self._last_event = (x, y, time)
-
-        self._last_view_event = (view_x, view_y, time)
-
-    def _button_press_cb(self, widget, event):
-        if event.button == 1:
-            self._drawing = True
-
-            if not self._xsheet.has_cel():
-                self._xsheet.add_cel(self._graph)
-
-        elif event.button == 2:
-            self._panning = True
-
-    def _button_release_cb(self, widget, event):
-        if event.button == 1:
-            self._drawing = False
-            self._brush.reset()
-
-        elif event.button == 2:
-            self._panning = False
-            self._last_event = None
-
     def _xsheet_changed_cb(self, xsheet):
         self._update_surface()
         self._update_graph()
@@ -341,10 +272,10 @@ class Application(GObject.GObject):
     def _update_surface(self):
         cel = self._xsheet.get_cel()
         if cel is not None:
-            self._surface = cel.surface
+            self._canvas_widget.set_surface(cel.surface)
             self._surface_node = cel.surface_node
         else:
-            self._surface = None
+            self._canvas_widget.set_surface(None)
             self._surface_node = None
 
     def _toggle_play_stop(self):
@@ -377,15 +308,14 @@ class Application(GObject.GObject):
     def _toggle_eraser(self):
         self._eraser_on = not self._eraser_on
 
-        eraser_setting = MyPaint.BrushSetting.SETTING_ERASER
-        radius_setting = MyPaint.BrushSetting.SETTING_RADIUS_LOGARITHMIC
+        brush = _settings['brush']
         if self._eraser_on:
-            set_base_value(self._brush, "eraser", 1.0)
-            set_base_value(self._brush, "radius_logarithmic",
+            set_base_value(brush, "eraser", 1.0)
+            set_base_value(brush, "radius_logarithmic",
                            self._default_radius * 3)
         else:
-            set_base_value(self._brush, "eraser", self._default_eraser)
-            set_base_value(self._brush, "radius_logarithmic",
+            set_base_value(brush, "eraser", self._default_eraser)
+            set_base_value(brush, "radius_logarithmic",
                            self._default_radius)
 
     def _toggle_eraser_cb(self, widget):
@@ -414,7 +344,7 @@ class Application(GObject.GObject):
         self._xsheet.next_layer()
 
     def _key_press_cb(self, widget, event):
-        scale = self._view_widget.props.scale
+        scale = self._canvas_widget.view.props.scale
 
         if event.keyval == Gdk.KEY_Up:
             self._xsheet.previous_frame()

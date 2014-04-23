@@ -27,6 +27,11 @@ class XSheet(GObject.GObject):
         self.layers = [FrameList() for x in range(layers_length)]
         self._play_hid = None
 
+        self._graph = None
+
+    def set_graph(self, graph):
+        self._graph = graph
+
     def get_layers(self):
         return self.layers
 
@@ -134,7 +139,7 @@ class XSheet(GObject.GObject):
 
         return self.layers[layer_idx].has_cel_at(frame_idx)
 
-    def add_cel(self, graph, frame_idx=None, layer_idx=None):
+    def add_cel(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
             frame_idx = self.current_frame
 
@@ -142,7 +147,7 @@ class XSheet(GObject.GObject):
             layer_idx = self.layer_idx
 
         if not self.layers[layer_idx].has_cel_at(frame_idx):
-            self.layers[layer_idx][frame_idx] = Cel(graph)
+            self.layers[layer_idx][frame_idx] = Cel(self._graph)
             self.emit("frame-changed")
 
     def remove_clear(self, frame_idx=None, layer_idx=None):
