@@ -38,7 +38,7 @@ class CanvasGraph(object):
     def _create_graph(self):
         self._graph = Gegl.Node()
 
-        root_node = self._graph.create_child("gegl:noop")
+        root_node = self._graph.create_child("gegl:nop")
         self._nodes['root_node'] = root_node
 
         layer_overs = []
