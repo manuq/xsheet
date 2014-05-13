@@ -92,7 +92,6 @@ class CanvasGraph(object):
 
         self._nodes['layer_nodes'] = layer_nodes
 
-        self._xsheet.set_graph(self._graph)
         self._update_graph()
 
     def _update_graph(self):

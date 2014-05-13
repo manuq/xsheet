@@ -1,7 +1,6 @@
 import os
 from gettext import gettext as _
 
-from gi.repository import Gegl
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
@@ -231,6 +230,12 @@ class Application(GObject.GObject):
     def _key_release_cb(self, widget, event):
         if event.keyval == Gdk.KEY_p:
             self._toggle_play_stop()
+        elif event.keyval == Gdk.KEY_s:
+            self._xsheet.save()
+        elif event.keyval == Gdk.KEY_o:
+            self._xsheet.load()
+        elif event.keyval == Gdk.KEY_q:
+            Gtk.main_quit()
         elif event.keyval == Gdk.KEY_o:
             self._canvas_graph.toggle_onionskin()
         elif event.keyval == Gdk.KEY_e:

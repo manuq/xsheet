@@ -1,15 +1,56 @@
+import os
+import json
+
 from gi.repository import GObject
 from gi.repository import MyPaintGegl
+from gi.repository import Gegl
 
 from framelist import FrameList
 
 
 class Cel(object):
-    def __init__(self, graph):
-        self._gegl_surface = MyPaintGegl.TiledSurface()
-        self.surface = self._gegl_surface.interface()
+    def __init__(self):
+        graph = Gegl.Node()
+        self.gegl_surface = MyPaintGegl.TiledSurface()
+        self.surface = self.gegl_surface.interface()
         self.surface_node = graph.create_child("gegl:buffer-source")
-        self.surface_node.set_property("buffer", self._gegl_surface.get_buffer())
+        self.surface_node.set_property("buffer", self.gegl_surface.get_buffer())
+
+    def save_png(self, path_png):
+        graph = Gegl.Node()
+        save = graph.create_child("gegl:png-save")
+        save.set_property('path', path_png)
+        self.surface_node.connect_to("output", save, "input")
+        save.process()
+
+    def load_png(self, path_png):
+        cel_buffer = self.gegl_surface.get_buffer()
+        graph = Gegl.Node()
+        load = graph.create_child("gegl:load")
+        load.set_property('path', path_png)
+        translate = graph.create_child("gegl:translate")
+        translate.set_property('x', cel_buffer.props.x)
+        translate.set_property('y', cel_buffer.props.y)
+        write = graph.create_child("gegl:write-buffer")
+        write.set_property('buffer', cel_buffer)
+        load.connect_to("output", translate, "input")
+        translate.connect_to("output", write, "input")
+        write.process()
+        self.surface_node.process()
+
+    def extent_to_data(self):
+        rect = self.gegl_surface.get_buffer().get_extent()
+        return [rect.x, rect.y, rect.width, rect.height]
+
+    def extent_from_data(self, data):
+        rect = Gegl.Rectangle()
+        rect.x = data[0]
+        rect.y = data[1]
+        rect.width = data[2]
+        rect.height = data[3]
+
+        cel_buffer = self.gegl_surface.get_buffer()
+        cel_buffer.set_extent(rect)
 
 
 class XSheet(GObject.GObject):
@@ -26,11 +67,6 @@ class XSheet(GObject.GObject):
         self.layer_idx = 0
         self.layers = [FrameList() for x in range(layers_length)]
         self._play_hid = None
-
-        self._graph = None
-
-    def set_graph(self, graph):
-        self._graph = graph
 
     def get_layers(self):
         return self.layers
@@ -147,7 +183,7 @@ class XSheet(GObject.GObject):
             layer_idx = self.layer_idx
 
         if not self.layers[layer_idx].has_cel_at(frame_idx):
-            self.layers[layer_idx][frame_idx] = Cel(self._graph)
+            self.layers[layer_idx][frame_idx] = Cel()
             self.emit("frame-changed")
 
     def remove_clear(self, frame_idx=None, layer_idx=None):
@@ -158,6 +194,48 @@ class XSheet(GObject.GObject):
             layer_idx = self.layer_idx
 
         self.layers[layer_idx].remove_clear(frame_idx)
+        self.emit("frame-changed")
+
+    def save(self):
+        dirname = 'out'
+        filename = 'test'
+
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
+
+        cel = self.get_cel()
+        if cel is None:
+            return
+
+        path_png = os.path.join('out', filename + '.png')
+        cel.save_png(path_png)
+
+        path_data = os.path.join('out', filename + '.json')
+        data = cel.extent_to_data()
+        with open(path_data, 'w') as datafile:
+            json.dump(data, datafile)
+
+    def load(self):
+        dirname = 'out'
+        filename = 'test'
+
+        if not os.path.exists(dirname):
+            return
+
+        frame_idx = self.current_frame
+        layer_idx = self.layer_idx
+
+        cel = Cel()
+        self.layers[layer_idx][frame_idx] = cel
+
+        path_data = os.path.join('out', filename + '.json')
+        with open(path_data, 'r') as datafile:
+            data = json.load(datafile)
+            cel.extent_from_data(data)
+
+        path_png = os.path.join('out', filename + '.png')
+        cel.load_png(path_png)
+
         self.emit("frame-changed")
 
     @property
