@@ -36,8 +36,15 @@ class Application(GObject.GObject):
         self._setup_icons()
         self._init_ui()
 
+        if os.path.exists('test.zip'):
+            self._xsheet.load('test.zip')
+
     def run(self):
         return Gtk.main()
+
+    def _quit(self):
+        self._xsheet.save('test.zip')
+        Gtk.main_quit()
 
     def _set_default_settings(self):
         brush = MyPaint.Brush()
@@ -154,7 +161,7 @@ class Application(GObject.GObject):
         self._xsheet_widget.show()
 
     def _destroy_cb(self, *ignored):
-        Gtk.main_quit()
+        self._quit()
 
     def _size_allocate_cb(self, widget, allocation):
         background_node = self._canvas_graph.nodes['background']
@@ -230,12 +237,8 @@ class Application(GObject.GObject):
     def _key_release_cb(self, widget, event):
         if event.keyval == Gdk.KEY_p:
             self._toggle_play_stop()
-        elif event.keyval == Gdk.KEY_s:
-            self._xsheet.save('out/test.zip')
-        elif event.keyval == Gdk.KEY_o:
-            self._xsheet.load('out/test.zip')
         elif event.keyval == Gdk.KEY_q:
-            Gtk.main_quit()
+            self._quit()
         elif event.keyval == Gdk.KEY_o:
             self._canvas_graph.toggle_onionskin()
         elif event.keyval == Gdk.KEY_e:
