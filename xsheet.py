@@ -67,8 +67,11 @@ class XSheet(GObject.GObject):
         self._frames_length = frames_length
         self.current_frame = 0
         self.layer_idx = 0
-        self.layers = [FrameList() for x in range(layers_length)]
         self._play_hid = None
+        self._setup(layers_length)
+
+    def _setup(self, layers_length):
+        self.layers = [FrameList() for x in range(layers_length)]
 
     def get_layers(self):
         return self.layers
@@ -198,33 +201,52 @@ class XSheet(GObject.GObject):
         self.layers[layer_idx].remove_clear(frame_idx)
         self.emit("frame-changed")
 
-    def save(self, filename):
-        cel = self.get_cel()
-        if cel is None:
-            return
+    def _get_cel_path(self, layer_idx, frame_idx, extension):
+        return "cels/{0}-{1}.{2}".format(str(layer_idx).zfill(3),
+                                         str(frame_idx).zfill(6),
+                                         extension)
 
+    def _get_data(self):
+
+        data = []
+        for layer_idx, layer in enumerate(self.layers):
+            layer_data = {}
+            for frame_idx in layer.get_assigned_frames():
+                frame_data = {}
+                frame_type = layer.get_type_at(frame_idx)
+                frame_data['type'] = frame_type
+                if frame_type == 'cel':
+                    png_path = self._get_cel_path(layer_idx, frame_idx, 'png')
+                    frame_data['path'] = png_path
+                    cel = layer[frame_idx]
+                    frame_data['extent'] = cel.extent_to_data()
+                layer_data[frame_idx] = frame_data
+            data.append(layer_data)
+
+        return data
+
+    def save(self, filename):
         tempdir = tempfile.mkdtemp('xsheet')
         xsheet_zip = zipfile.ZipFile(filename + '.tmpsave', 'w',
                                      compression=zipfile.ZIP_STORED)
 
-        def write_file_str(filename, data):
-            zi = zipfile.ZipInfo(filename)
-            zi.external_attr = 0100644 << 16
-            xsheet_zip.writestr(zi, data)
+        for layer_idx, layer in enumerate(self.layers):
+            for frame_idx in layer.get_assigned_frames():
+                frame_type = layer.get_type_at(frame_idx)
+                if frame_type == 'cel':
+                    cel = layer[frame_idx]
+                    png_path = self._get_cel_path(layer_idx, frame_idx, 'png')
+                    temp_png_path = os.path.join(tempdir, 'cel.png')
+                    cel.save_png(temp_png_path)
+                    xsheet_zip.write(temp_png_path, png_path)
+                    os.remove(temp_png_path)
 
-        write_file_str('mimetype', 'image/xsheet')
-
-        path_png = os.path.join(tempdir, 'test.png')
-        cel.save_png(path_png)
-        xsheet_zip.write(path_png, 'frames/test.png')
-        os.remove(path_png)
-
-        path_data = os.path.join(tempdir, 'test.json')
-        data = cel.extent_to_data()
+        path_data = os.path.join(tempdir, 'info.json')
+        data = self._get_data()
         with open(path_data, 'w') as datafile:
-            json.dump(data, datafile)
+            json.dump(data, datafile, sort_keys=True, indent=2)
 
-        xsheet_zip.write(path_data, 'frames/test.json')
+        xsheet_zip.write(path_data, 'info.json')
         os.remove(path_data)
 
         xsheet_zip.close()
@@ -234,24 +256,28 @@ class XSheet(GObject.GObject):
         os.rename(filename + '.tmpsave', filename)
 
     def load(self, filename):
-        frame_idx = self.current_frame
-        layer_idx = self.layer_idx
-
-        cel = Cel()
-        self.layers[layer_idx][frame_idx] = cel
-
         tempdir = tempfile.mkdtemp('xsheet')
         xsheet_zip = zipfile.ZipFile(filename)
 
-        data = json.loads(xsheet_zip.read('frames/test.json'))
-        cel.extent_from_data(data)
-
-        path_png = os.path.join(tempdir, 'test.png')
-        file_png = open(path_png, 'wb')
-        file_png.write(xsheet_zip.read('frames/test.png'))
-        file_png.close()
-        cel.load_png(path_png)
-        os.remove(path_png)
+        data = json.loads(xsheet_zip.read('info.json'))
+        self._setup(len(data))
+        for layer_idx, layer_data in enumerate(data):
+            for frame_idx, frame_data in layer_data.items():
+                frame_idx = int(frame_idx)
+                if frame_data['type'] == 'clear':
+                    self.layers[layer_idx][frame_idx] = None
+                elif frame_data['type'] == 'cel':
+                    cel = Cel()
+                    self.layers[layer_idx][frame_idx] = cel
+                    extent = frame_data['extent']
+                    cel.extent_from_data(extent)
+                    png_path = frame_data['path']
+                    temp_png_path = os.path.join(tempdir, 'cel.png')
+                    png_file = open(temp_png_path, 'wb')
+                    png_file.write(xsheet_zip.read(png_path))
+                    png_file.close()
+                    cel.load_png(temp_png_path)
+                    os.remove(temp_png_path)
 
         xsheet_zip.close()
         os.rmdir(tempdir)
