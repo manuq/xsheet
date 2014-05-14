@@ -111,7 +111,7 @@ class CanvasGraph(object):
             else:
                 layer_nodes['current_cel_over'].disconnect("input")
 
-            if not _settings['onionskin']['on']:
+            if self._xsheet.is_playing or not _settings['onionskin']['on']:
                 continue
 
             layer_diff = layer_idx - self._xsheet.layer_idx
