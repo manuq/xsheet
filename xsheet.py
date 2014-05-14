@@ -9,6 +9,8 @@ from gi.repository import Gegl
 
 from framelist import FrameList
 
+FPMS = 42
+
 
 class Cel(object):
     def __init__(self):
@@ -61,10 +63,9 @@ class XSheet(GObject.GObject):
         "layer-changed": (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 
-    def __init__(self, frames_length=24, layers_length=3):
+    def __init__(self, layers_length=3):
         GObject.GObject.__init__(self)
 
-        self._frames_length = frames_length
         self.current_frame = 0
         self.layer_idx = 0
         self._play_hid = None
@@ -77,8 +78,7 @@ class XSheet(GObject.GObject):
         return self.layers
 
     def go_to_frame(self, frame_idx):
-        cant_go = (frame_idx < 0 or frame_idx > self.frames_length-1 or
-                   frame_idx == self.current_frame)
+        cant_go = (frame_idx < 0 or frame_idx == self.current_frame)
         if cant_go:
             return False
 
@@ -88,13 +88,13 @@ class XSheet(GObject.GObject):
         return True
 
     def previous_frame(self, loop=False):
-        if not loop:
-            if self.current_frame == 0:
-                return False
-        else:
-            if self.current_frame == 0:
-                self.current_frame = self.frames_length-1
+        if loop:
+            if self.current_frame == self._get_first_frame():
+                self.current_frame = self._get_last_frame()
                 return True
+
+        if self.current_frame == 0:
+            return False
 
         self.current_frame -= 1
 
@@ -102,12 +102,9 @@ class XSheet(GObject.GObject):
         return True
 
     def next_frame(self, loop=False):
-        if not loop:
-            if self.current_frame == self.frames_length-1:
-                return False
-        else:
-            if self.current_frame == self.frames_length-1:
-                self.current_frame = 0
+        if loop:
+            if self.current_frame == self._get_last_frame():
+                self.current_frame = self._get_first_frame() - 1
                 return True
 
         self.current_frame += 1
@@ -115,11 +112,14 @@ class XSheet(GObject.GObject):
         self.emit("frame-changed")
         return True
 
-    def play(self):
+    def play(self, loop=False):
         if self._play_hid is not None:
             return False
 
-        self._play_hid = GObject.timeout_add(42, self.next_frame, True)
+        if loop:
+            self.current_frame = self._get_first_frame()
+            self.emit("frame-changed")
+        self._play_hid = GObject.timeout_add(FPMS, self.next_frame, loop)
         return True
 
     def stop(self):
@@ -285,13 +285,23 @@ class XSheet(GObject.GObject):
         self.emit("frame-changed")
 
     @property
-    def frames_length(self):
-        return self._frames_length
-
-    @property
     def layers_length(self):
         return len(self.layers)
 
     @property
     def frames_separation(self):
         return 6
+
+    def _get_first_frame(self):
+        first_frames = [layer.get_first_frame() for layer in self.layers]
+        valid_frames = [frame for frame in first_frames if frame is not None]
+        if not valid_frames:
+            return 0
+        return min(valid_frames)
+
+    def _get_last_frame(self):
+        last_frames = [layer.get_last_frame() for layer in self.layers]
+        valid_frames = [frame for frame in last_frames if frame is not None]
+        if not valid_frames:
+            return 0
+        return max(valid_frames)

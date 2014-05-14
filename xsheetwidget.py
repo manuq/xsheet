@@ -19,6 +19,8 @@ SECONDS_LINE_WIDTH = 1.0
 ELEMENT_CEL_RADIUS = 3.0
 CLEAR_RADIUS = 4
 
+FRAMES = 24 * 60
+
 
 def _get_cairo_color(gdk_color):
     return (float(gdk_color.red), float(gdk_color.green),
@@ -81,7 +83,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
     @property
     def virtual_height(self):
-        return self._xsheet.frames_length * CEL_HEIGHT * self._zoom_factor
+        return FRAMES * CEL_HEIGHT * self._zoom_factor
 
     def _configure(self):
         width = self.get_allocated_width()

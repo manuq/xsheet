@@ -25,7 +25,7 @@ class Application(GObject.GObject):
 
         self._set_default_settings()
 
-        self._xsheet = XSheet(24 * 60)
+        self._xsheet = XSheet()
 
         self._canvas_graph = CanvasGraph(self._xsheet)
         self._metronome = Metronome(self._xsheet)

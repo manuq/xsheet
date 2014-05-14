@@ -20,6 +20,20 @@ class FrameList(object):
     def get_assigned_frames(self):
         return sorted(self._values.keys())
 
+    def get_first_frame(self):
+        assigned = self.get_assigned_frames()
+        if not assigned:
+            return None
+
+        return assigned[0]
+
+    def get_last_frame(self):
+        assigned = self.get_assigned_frames()
+        if not assigned:
+            return None
+
+        return assigned[-1]
+
     def get_content_sublist(self):
         changing_frames = self.get_assigned_frames()
         result = []
@@ -92,16 +106,22 @@ FrameList is empty after instantiation.  But unlike List, all indexs
 are possible.  They return None.
 
 >>> frames = FrameList()
->>> frames[0] == None
+>>> frames[0] is None
 True
 
->>> frames[23] == None
+>>> frames[23] is None
 True
 
->>> frames[-3] == None
+>>> frames[-3] is None
 True
 
 >>> len(frames) == 0
+True
+
+>>> frames.get_first_frame() is None
+True
+
+>>> frames.get_last_frame() is None
 True
 
 Indexs in FrameList are frame numbers.  When a cel is assigned to one
@@ -142,6 +162,14 @@ We can ask the frames with assigned values, a cel or None:
 
 >>> frames.get_assigned_frames()
 [3, 6]
+
+And the first and last frame:
+
+>>> frames.get_first_frame()
+3
+
+>>> frames.get_last_frame()
+6
 
 As said before, FrameList are infinite.  Don't try something like this
 because it will never end:
