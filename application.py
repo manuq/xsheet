@@ -231,9 +231,9 @@ class Application(GObject.GObject):
         if event.keyval == Gdk.KEY_p:
             self._toggle_play_stop()
         elif event.keyval == Gdk.KEY_s:
-            self._xsheet.save()
+            self._xsheet.save('out/test.zip')
         elif event.keyval == Gdk.KEY_o:
-            self._xsheet.load()
+            self._xsheet.load('out/test.zip')
         elif event.keyval == Gdk.KEY_q:
             Gtk.main_quit()
         elif event.keyval == Gdk.KEY_o:

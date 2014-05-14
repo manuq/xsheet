@@ -1,5 +1,7 @@
 import os
 import json
+import zipfile
+import tempfile
 
 from gi.repository import GObject
 from gi.repository import MyPaintGegl
@@ -196,45 +198,63 @@ class XSheet(GObject.GObject):
         self.layers[layer_idx].remove_clear(frame_idx)
         self.emit("frame-changed")
 
-    def save(self):
-        dirname = 'out'
-        filename = 'test'
-
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
-
+    def save(self, filename):
         cel = self.get_cel()
         if cel is None:
             return
 
-        path_png = os.path.join('out', filename + '.png')
-        cel.save_png(path_png)
+        tempdir = tempfile.mkdtemp('xsheet')
+        xsheet_zip = zipfile.ZipFile(filename + '.tmpsave', 'w',
+                                     compression=zipfile.ZIP_STORED)
 
-        path_data = os.path.join('out', filename + '.json')
+        def write_file_str(filename, data):
+            zi = zipfile.ZipInfo(filename)
+            zi.external_attr = 0100644 << 16
+            xsheet_zip.writestr(zi, data)
+
+        write_file_str('mimetype', 'image/xsheet')
+
+        path_png = os.path.join(tempdir, 'test.png')
+        cel.save_png(path_png)
+        xsheet_zip.write(path_png, 'frames/test.png')
+        os.remove(path_png)
+
+        path_data = os.path.join(tempdir, 'test.json')
         data = cel.extent_to_data()
         with open(path_data, 'w') as datafile:
             json.dump(data, datafile)
 
-    def load(self):
-        dirname = 'out'
-        filename = 'test'
+        xsheet_zip.write(path_data, 'frames/test.json')
+        os.remove(path_data)
 
-        if not os.path.exists(dirname):
-            return
+        xsheet_zip.close()
+        os.rmdir(tempdir)
+        if os.path.exists(filename):
+            os.remove(filename)
+        os.rename(filename + '.tmpsave', filename)
 
+    def load(self, filename):
         frame_idx = self.current_frame
         layer_idx = self.layer_idx
 
         cel = Cel()
         self.layers[layer_idx][frame_idx] = cel
 
-        path_data = os.path.join('out', filename + '.json')
-        with open(path_data, 'r') as datafile:
-            data = json.load(datafile)
-            cel.extent_from_data(data)
+        tempdir = tempfile.mkdtemp('xsheet')
+        xsheet_zip = zipfile.ZipFile(filename)
 
-        path_png = os.path.join('out', filename + '.png')
+        data = json.loads(xsheet_zip.read('frames/test.json'))
+        cel.extent_from_data(data)
+
+        path_png = os.path.join(tempdir, 'test.png')
+        file_png = open(path_png, 'wb')
+        file_png.write(xsheet_zip.read('frames/test.png'))
+        file_png.close()
         cel.load_png(path_png)
+        os.remove(path_png)
+
+        xsheet_zip.close()
+        os.rmdir(tempdir)
 
         self.emit("frame-changed")
 
