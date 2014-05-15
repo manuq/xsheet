@@ -53,11 +53,6 @@ class CanvasGraph(object):
         for over, next_over in zip(layer_overs, layer_overs[1:]):
             next_over.connect_to("output", over, "input")
 
-        background_node = self._graph.create_child("gegl:rectangle")
-        background_node.set_property('color', Gegl.Color.new("#fff"))
-        background_node.connect_to("output", layer_overs[-1], "input")
-        self._nodes['background'] = background_node
-
         layer_nodes = []
         for l in range(self._xsheet.layers_length):
             nodes = {}

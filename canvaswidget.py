@@ -25,6 +25,8 @@ class CanvasWidget(Gtk.EventBox):
 
         self._view = GeglGtk.View()
         self._view.set_autoscale_policy(GeglGtk.ViewAutoscale.DISABLED)
+        self._view.override_background_color(Gtk.StateFlags.NORMAL,
+                                             Gdk.RGBA(1, 1, 1, 1))
         self._view.set_node(root_node)
         self._view.set_size_request(800, 400)
         self.add(self._view)

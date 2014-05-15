@@ -153,20 +153,12 @@ class Application(GObject.GObject):
         top_box.attach(self._canvas_widget, 0, 1, 1, 1)
         self._canvas_widget.show()
 
-        self._canvas_widget.view.connect("size-allocate",
-                                         self._size_allocate_cb)
-
         self._xsheet_widget = XSheetWidget(self._xsheet)
         top_box.attach(self._xsheet_widget, 1, 1, 1, 1)
         self._xsheet_widget.show()
 
     def _destroy_cb(self, *ignored):
         self._quit()
-
-    def _size_allocate_cb(self, widget, allocation):
-        background_node = self._canvas_graph.nodes['background']
-        background_node.set_property("width", allocation.width)
-        background_node.set_property("height", allocation.height)
 
     def _toggle_play_stop(self):
         if self._xsheet.is_playing:
