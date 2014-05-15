@@ -9,8 +9,8 @@ NUMBERS_MARGIN = 5.0
 CEL_WIDTH = 55.0
 CEL_HEIGHT = 25.0
 
-MIN_ZOOM = 0.01
-MAX_ZOOM = 4.0
+MIN_ZOOM = 0
+MAX_ZOOM = 4
 ZOOM_STEP = 0.05
 
 SOFT_LINE_WIDTH = 0.2
@@ -292,7 +292,6 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.line_to(center_x + CLEAR_RADIUS, center_y - CLEAR_RADIUS)
         context.stroke()
 
-
     def _draw_elements(self, context):
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
@@ -349,18 +348,24 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._pan_start = event.y
         elif self._zooming:
             self._zoom_by_offset(self._zoom_start - event.y)
+            self._zoom_start = event.y
 
     def _zoom_by_direction(self, direction):
-        self._zoom(self._zoom_factor + ZOOM_STEP * direction)
+        new_factor = (self._zoom_factor +
+                      ZOOM_STEP * self._zoom_factor * direction)
+        self._set_zoom_factor(new_factor)
 
     def _zoom_by_offset(self, offset):
-        self._zoom(self._zoom_start_factor - 0.01 * offset)
+        if offset > 0:
+            return self._zoom_by_direction(1)
+        elif offset < 0:
+            return self._zoom_by_direction(-1)
 
-    def _zoom(self, value):
-        if value < MIN_ZOOM or value > MAX_ZOOM:
+    def _set_zoom_factor(self, new_factor):
+        if new_factor <= MIN_ZOOM or new_factor >= MAX_ZOOM:
             return False
 
-        self._zoom_factor = value
+        self._zoom_factor = new_factor
         self._configure()
         self._update_offset()
         self.queue_draw()
