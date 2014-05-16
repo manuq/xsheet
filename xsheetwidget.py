@@ -178,43 +178,68 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.fill()
 
     def _draw_grid_horizontal(self, context):
-        pass_frame_lines = False
-        pass_separation_lines = False
-        pass_seconds_lines = False
-        if self._zoom_factor * CEL_HEIGHT < MIN_LINES_SEPARATION:
-            pass_frame_lines = True
-
-        if self._zoom_factor * CEL_HEIGHT * self._xsheet.frames_separation < MIN_LINES_SEPARATION:
-            pass_separation_lines = True
-        if self._zoom_factor * CEL_HEIGHT * 24 < MIN_LINES_SEPARATION:
-            pass_seconds_lines = True
-
-        line_factor = 1
-        if self._zoom_factor < 0.2:
-            line_factor = 0.5
 
         width = context.get_target().get_width()
         context.set_source_rgb(*self._fg_color)
-        for i in range(self._first_visible_frame,
-                       self._last_visible_frames + 1):
-            if i % 24 == 0:  # 24 frames do one second
-                if pass_seconds_lines:
-                    if not i % 1440 == 0:  # 1440 frames do one minute
-                        continue
-                context.set_line_width(SECONDS_LINE_WIDTH)
-            elif i % self._xsheet.frames_separation == 0:
-                if pass_separation_lines:
-                    continue
-                context.set_line_width(STRONG_LINE_WIDTH * line_factor)
-            else:
-                if pass_frame_lines:
-                    continue
-                context.set_line_width(SOFT_LINE_WIDTH * line_factor)
 
+        def draw_line(i):
             y = i * CEL_HEIGHT * self._zoom_factor
             context.move_to(0, y)
             context.line_to(width, y)
             context.stroke()
+
+        first = self._first_visible_frame
+        last = self._last_visible_frames + 1
+        separation = self._xsheet.frames_separation
+
+        frame_height = self._zoom_factor * CEL_HEIGHT
+        separation_height = self._zoom_factor * CEL_HEIGHT * separation
+        seconds_height = self._zoom_factor * CEL_HEIGHT * 24
+
+        draw_frame_lines = frame_height > MIN_LINES_SEPARATION
+        draw_separation_lines = separation_height > MIN_LINES_SEPARATION
+        draw_seconds_lines = seconds_height > MIN_LINES_SEPARATION
+
+        if not draw_seconds_lines:
+            # FIXME cache divisors of 1440, 24 and SEP
+            minutes = (i for i in range(first, last) if i % 1440 == 0)
+            context.set_line_width(SECONDS_LINE_WIDTH)
+            for i in minutes:
+                draw_line(i)
+
+            return
+
+        seconds = list(i for i in range(first, last) if i % 24 == 0)
+        if seconds:
+            line_width = SECONDS_LINE_WIDTH
+            if not draw_separation_lines:
+                line_width *= 0.5
+
+            context.set_line_width(line_width)
+            for i in seconds:
+                draw_line(i)
+
+        if not draw_separation_lines:
+            return
+
+        seps = list(i for i in range(first, last)
+                    if i % separation == 0 and i not in seconds)
+        if seps:
+            line_width = STRONG_LINE_WIDTH
+            if not draw_frame_lines:
+                line_width *= 0.5
+
+            context.set_line_width(line_width)
+            for i in seps:
+                draw_line(i)
+
+        if draw_frame_lines:
+            frames = list(i for i in range(first, last)
+                          if i not in seconds and i not in seps)
+            if frames:
+                context.set_line_width(SOFT_LINE_WIDTH)
+                for i in frames:
+                    draw_line(i)
 
     def _draw_grid_vertical(self, context):
         context.set_source_rgb(*self._fg_color)
