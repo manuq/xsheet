@@ -8,6 +8,7 @@ NUMBERS_WIDTH = 45.0
 NUMBERS_MARGIN = 5.0
 CEL_WIDTH = 55.0
 CEL_HEIGHT = 25.0
+MIN_LINES_SEPARATION = 15
 
 MIN_ZOOM = 0
 MAX_ZOOM = 4
@@ -179,10 +180,14 @@ class _XSheetDrawing(Gtk.DrawingArea):
     def _draw_grid_horizontal(self, context):
         pass_frame_lines = False
         pass_separation_lines = False
-        if self._zoom_factor * CEL_HEIGHT < 5:
+        pass_seconds_lines = False
+        if self._zoom_factor * CEL_HEIGHT < MIN_LINES_SEPARATION:
             pass_frame_lines = True
-        if self._zoom_factor * CEL_HEIGHT * self._xsheet.frames_separation < 5:
+
+        if self._zoom_factor * CEL_HEIGHT * self._xsheet.frames_separation < MIN_LINES_SEPARATION:
             pass_separation_lines = True
+        if self._zoom_factor * CEL_HEIGHT * 24 < MIN_LINES_SEPARATION:
+            pass_seconds_lines = True
 
         line_factor = 1
         if self._zoom_factor < 0.2:
@@ -192,7 +197,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.set_source_rgb(*self._fg_color)
         for i in range(self._first_visible_frame,
                        self._last_visible_frames + 1):
-            if i % 24 == 0:
+            if i % 24 == 0:  # 24 frames do one second
+                if pass_seconds_lines:
+                    if not i % 1440 == 0:  # 1440 frames do one minute
+                        continue
                 context.set_line_width(SECONDS_LINE_WIDTH)
             elif i % self._xsheet.frames_separation == 0:
                 if pass_separation_lines:
