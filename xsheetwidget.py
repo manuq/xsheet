@@ -12,6 +12,7 @@ MIN_LINES_SEPARATION = 15
 
 MIN_ZOOM = 0
 MAX_ZOOM = 4
+ZOOM_DOTS_MODE = 0.35
 ZOOM_STEP = 0.05
 
 SOFT_LINE_WIDTH = 0.2
@@ -333,12 +334,24 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.line_to(center_x + CLEAR_RADIUS, center_y - CLEAR_RADIUS)
         context.stroke()
 
-    def _draw_elements(self, context):
+    def _draw_cels_line(self, context, layer_idx, first_frame, last_frame):
+        context.set_line_cap(cairo.LINE_CAP_ROUND)
+        context.set_line_width(STRONG_LINE_WIDTH * 10)
+        context.set_source_rgb(*self._fg_color)
+
+        center_x = NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5)
+        y1 = CEL_HEIGHT * self._zoom_factor * (first_frame + 0.5)
+        y2 = CEL_HEIGHT * self._zoom_factor * (last_frame + 0.5)
+        context.move_to(center_x, y1)
+        context.line_to(center_x, y2)
+        context.stroke()
+
+    def _draw_elements_dots(self, context):
+        first = self._first_visible_frame
+        last = self._last_visible_frames
+
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
-            first = self._first_visible_frame
-            last = self._last_visible_frames
-
             for frame in range(first, last):
                 if layer.get_type_at(frame) == 'repeat clear':
                     continue
@@ -348,6 +361,21 @@ class _XSheetDrawing(Gtk.DrawingArea):
                     self._draw_cel(context, layer_idx, frame, repeat=False)
                 elif layer.get_type_at(frame) == 'repeat cel':
                     self._draw_cel(context, layer_idx, frame, repeat=True)
+
+    def _draw_elements_lines(self, context):
+        for layer_idx in range(self._xsheet.layers_length):
+            layer = self._xsheet.get_layers()[layer_idx]
+            first = layer.get_first_frame()
+            last = layer.get_last_frame()
+            if first is not None and last is not None:
+                self._draw_cels_line(context, layer_idx, first, last)
+
+    def _draw_elements(self, context):
+        if self._zoom_factor > ZOOM_DOTS_MODE:
+            self._draw_elements_dots(context)
+        else:
+            self._draw_elements_lines(context)
+
 
     def _get_frame_from_point(self, x, y):
         return int((y - self._offset) / CEL_HEIGHT / self._zoom_factor)
