@@ -4,10 +4,11 @@ import cairo
 from gi.repository import Gtk
 from gi.repository import Gdk
 
-NUMBERS_WIDTH = 45.0
-NUMBERS_MARGIN = 5.0
-CEL_WIDTH = 55.0
-CEL_HEIGHT = 25.0
+NUMBERS_WIDTH = 45
+NUMBERS_MARGIN = 5
+CEL_WIDTH = 30
+CEL_HEIGHT = 25
+CURSOR_HEIGHT = 5
 MIN_LINES_SEPARATION = 15
 
 MIN_ZOOM = 0
@@ -172,11 +173,17 @@ class _XSheetDrawing(Gtk.DrawingArea):
         if skip_draw:
             return
 
+        if self._zoom_factor > ZOOM_DOTS_MODE:
+            height = CEL_HEIGHT * self._zoom_factor
+        else:
+            height = CURSOR_HEIGHT
+
         y = self._xsheet.current_frame * CEL_HEIGHT * self._zoom_factor
         width = context.get_target().get_width()
         context.set_source_rgb(*self._selected_color)
-        context.rectangle(0, y, width, CEL_HEIGHT * self._zoom_factor)
+        context.rectangle(0, y, width, height)
         context.fill()
+
 
     def _draw_grid_horizontal(self, context):
 
@@ -289,7 +296,9 @@ class _XSheetDrawing(Gtk.DrawingArea):
             if i % draw_step != 0:
                 continue
 
-            if i == self._xsheet.current_frame:
+            use_active_color = (self._zoom_factor > ZOOM_DOTS_MODE and
+                                i == self._xsheet.current_frame)
+            if use_active_color:
                 context.set_source_rgb(*self._selected_fg_color)
             else:
                 context.set_source_rgb(*self._fg_color)
@@ -375,7 +384,6 @@ class _XSheetDrawing(Gtk.DrawingArea):
             self._draw_elements_dots(context)
         else:
             self._draw_elements_lines(context)
-
 
     def _get_frame_from_point(self, x, y):
         return int((y - self._offset) / CEL_HEIGHT / self._zoom_factor)
