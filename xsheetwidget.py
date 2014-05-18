@@ -22,8 +22,6 @@ SECONDS_LINE_WIDTH = 1.0
 ELEMENT_CEL_RADIUS = 3.0
 CLEAR_RADIUS = 4
 
-FRAMES = 24 * 60
-
 
 def _get_cairo_color(gdk_color):
     return (float(gdk_color.red), float(gdk_color.green),
@@ -52,6 +50,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
                 'theme_selected_fg_color')[1])
 
         self._xsheet = xsheet
+        self._frames = 1440  # one minute
         self._adjustment = adjustment
         self._pixbuf = None
         self._offset = 0
@@ -86,7 +85,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
     @property
     def virtual_height(self):
-        return FRAMES * CEL_HEIGHT * self._zoom_factor
+        return self._frames * CEL_HEIGHT * self._zoom_factor
 
     def _configure(self):
         width = self.get_allocated_width()
@@ -132,6 +131,10 @@ class _XSheetDrawing(Gtk.DrawingArea):
                 self.get_allocated_height() / CEL_HEIGHT / self._zoom_factor)))
 
     def _scroll_changed_cb(self, adjustment):
+        if (adjustment.props.value + adjustment.props.page_size) == 1.0:
+            self._frames += 240
+            self._configure()
+
         self._update_offset()
         self.queue_draw()
 
