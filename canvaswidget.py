@@ -1,3 +1,4 @@
+import math
 import cairo
 
 from gi.repository import Gtk
@@ -10,21 +11,24 @@ _settings = get_settings()
 
 
 CORNER_MARGIN = 10
+TICK_STRONG_RADIUS = 30
+TICK_SOFT_RADIUS = 15
+TICK_SIZE = TICK_STRONG_RADIUS + CORNER_MARGIN
 
 
 class CanvasView(GeglGtk.View):
-    def __init__(self):
+    def __init__(self, xsheet):
         GeglGtk.View.__init__(self)
         self.set_autoscale_policy(GeglGtk.ViewAutoscale.DISABLED)
         self.override_background_color(Gtk.StateFlags.NORMAL,
                                        Gdk.RGBA(1, 1, 1, 1))
 
-        self._frame_number = None
+        self._xsheet = xsheet
+        self._xsheet.connect('frame-changed', self._frame_changed_cb)
 
         self.connect('draw', self._draw_cb)
 
-    def change_frame(self, frame_number):
-        self._frame_number = frame_number
+    def _frame_changed_cb(self, xsheet):
         self.queue_draw()
 
     def _draw_frame_number(self, widget, context):
@@ -36,7 +40,7 @@ class CanvasView(GeglGtk.View):
                                  cairo.FONT_WEIGHT_NORMAL)
         context.set_font_size(17)
 
-        text = "{0}".format(self._frame_number + 1)
+        text = "{0}".format(self._xsheet.current_frame + 1)
         x, y, w, h, dx, dy = context.text_extents(text)
         context.translate(width - w - x - CORNER_MARGIN,
                           h + CORNER_MARGIN)
@@ -45,9 +49,22 @@ class CanvasView(GeglGtk.View):
         context.stroke()
         context.restore()
 
+    def _draw_tick(self, widget, context, strong=False):
+        if strong:
+            radius = TICK_STRONG_RADIUS
+        else:
+            radius = TICK_SOFT_RADIUS
+
+        context.set_source_rgb(0, 0, 0)
+        context.arc(TICK_SIZE, TICK_SIZE, radius, 0, 2 * math.pi)
+        context.fill()
+
     def _draw_cb(self, widget, context):
-        if self._frame_number is not None:
-            self._draw_frame_number(widget, context)
+        self._draw_frame_number(widget, context)
+        if self._xsheet.current_frame % 24 == 0:
+            self._draw_tick(widget, context, True)
+        elif self._xsheet.current_frame % self._xsheet.frames_separation == 0:
+            self._draw_tick(widget, context, False)
 
 
 class CanvasWidget(Gtk.EventBox):
@@ -56,8 +73,8 @@ class CanvasWidget(Gtk.EventBox):
         self.props.expand = True
 
         self._xsheet = xsheet
-        self._xsheet.connect('frame-changed', self._xsheet_frame_changed_cb)
-        self._xsheet.connect('layer-changed', self._xsheet_layer_changed_cb)
+        self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
+        self._xsheet.connect('layer-changed', self._xsheet_changed_cb)
 
         self._drawing = False
         self._panning = False
@@ -66,7 +83,7 @@ class CanvasWidget(Gtk.EventBox):
 
         self._surface = None
 
-        self._view = CanvasView()
+        self._view = CanvasView(xsheet)
         self._view.set_node(root_node)
         self._view.set_size_request(800, 400)
         self.add(self._view)
@@ -86,13 +103,6 @@ class CanvasWidget(Gtk.EventBox):
             self._surface = cel.surface
         else:
             self._surface = None
-
-    def _xsheet_frame_changed_cb(self, xsheet):
-        self._view.change_frame(xsheet.current_frame)
-        self._xsheet_changed_cb(xsheet)
-
-    def _xsheet_layer_changed_cb(self, xsheet):
-        self._xsheet_changed_cb(xsheet)
 
     def _motion_to_cb(self, widget, event):
         (x, y, time) = event.x, event.y, event.time
