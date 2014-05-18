@@ -276,7 +276,13 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.set_font_size(13)
 
         draw_step = 1
-        if self._zoom_factor < 0.0075:
+        if self._zoom_factor < 0.0009375:
+            draw_step = 1024
+        elif self._zoom_factor < 0.001875:
+            draw_step = 512
+        elif self._zoom_factor < 0.00375:
+            draw_step = 256
+        elif self._zoom_factor < 0.0075:
             draw_step = 128
         elif self._zoom_factor < 0.015:
             draw_step = 64
