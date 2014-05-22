@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=xsheet
+Icon=xsheet
+StartupNotify=true
+Exec=@bindir@/xsheet

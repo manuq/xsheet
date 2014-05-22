@@ -85,7 +85,7 @@ class Application(Gtk.Application):
     def _init_ui(self):
         self._main_window = Gtk.ApplicationWindow()
         self._main_window.set_application(self)
-        self._main_window.props.title = _("XSheet")
+        self._main_window.props.title = _("xsheet")
         self._main_window.connect("destroy", self._destroy_cb)
         self._main_window.connect("key-press-event", self._key_press_cb)
         self._main_window.connect("key-release-event", self._key_release_cb)
