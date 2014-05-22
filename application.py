@@ -19,10 +19,11 @@ from giutils import set_base_value, get_base_value, set_base_color
 _settings = get_settings()
 
 
-class Application(GObject.GObject):
+class Application(Gtk.Application):
     def __init__(self):
-        GObject.GObject.__init__(self)
+        Gtk.Application.__init__(self)
 
+    def setup(self):
         self._set_default_settings()
 
         self._xsheet = XSheet()
@@ -39,12 +40,16 @@ class Application(GObject.GObject):
         if os.path.exists('test.zip'):
             self._xsheet.load('test.zip')
 
-    def run(self):
-        return Gtk.main()
+    def run(self, args):
+        Gtk.Application.run(self, args)
+
+    def do_activate(self):
+        self.setup()
+        self._main_window.present()
 
     def _quit(self):
         self._xsheet.save('test.zip')
-        Gtk.main_quit()
+        Gtk.Application.quit(self)
 
     def _set_default_settings(self):
         brush = MyPaint.Brush()
@@ -78,15 +83,16 @@ class Application(GObject.GObject):
 
 
     def _init_ui(self):
-        window = Gtk.Window()
-        window.props.title = _("XSheet")
-        window.connect("destroy", self._destroy_cb)
-        window.connect("key-press-event", self._key_press_cb)
-        window.connect("key-release-event", self._key_release_cb)
-        window.show()
+        self._main_window = Gtk.ApplicationWindow()
+        self._main_window.set_application(self)
+        self._main_window.props.title = _("XSheet")
+        self._main_window.connect("destroy", self._destroy_cb)
+        self._main_window.connect("key-press-event", self._key_press_cb)
+        self._main_window.connect("key-release-event", self._key_release_cb)
+        self._main_window.show()
 
         top_box = Gtk.Grid()
-        window.add(top_box)
+        self._main_window.add(top_box)
         top_box.show()
 
         toolbar = Gtk.Toolbar()
