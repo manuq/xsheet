@@ -45,6 +45,26 @@ class FrameList(object):
 
         return result
 
+    def get_extremes(self):
+        changing_frames = self.get_assigned_frames()
+        result = []
+        start = None
+
+        for frame in changing_frames:
+            value = self._values[frame]
+            if start is None:
+                if value is not None:
+                    start = frame
+            else:
+                if value is None:
+                    result.append((start, frame))
+                    start = None
+
+        if start is not None:
+            result.append((start, None))
+
+        return result
+
     def get_type_at(self, frame, separate_repeats=True):
         value = self[frame]
         assigned_frames = self._values.keys()
@@ -356,6 +376,25 @@ True
 
 >>> frames.get_relative(0, steps=8) is None
 True
+
+Another example with two subsets:
+
+>>> frames = FrameList()
+>>> frames[2] = "x"
+>>> frames[4] = "y"
+
+>>> frames.get_extremes()
+[(2, None)]
+
+>>> frames[6] = None
+>>> frames[8] = "z"
+>>> frames[10] = None
+>>> frames[12] = None
+>>> frames.get_content_sublist()
+['x', 'x', 'y', 'y', None, None, 'z', 'z', None, None, None]
+
+>>> frames.get_extremes()
+[(2, 6), (8, 10)]
 
 """)
 

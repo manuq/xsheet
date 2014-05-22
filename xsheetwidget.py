@@ -359,7 +359,11 @@ class _XSheetDrawing(Gtk.DrawingArea):
 
         center_x = NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5)
         y1 = CEL_HEIGHT * self._zoom_factor * (first_frame + 0.5)
-        y2 = CEL_HEIGHT * self._zoom_factor * (last_frame + 0.5)
+        if last_frame is not None:
+            y2 = CEL_HEIGHT * self._zoom_factor * (last_frame + 0.5)
+        else:
+            y2 = CEL_HEIGHT * self._frames
+
         context.move_to(center_x, y1)
         context.line_to(center_x, y2)
         context.stroke()
@@ -383,10 +387,8 @@ class _XSheetDrawing(Gtk.DrawingArea):
     def _draw_elements_lines(self, context):
         for layer_idx in range(self._xsheet.layers_length):
             layer = self._xsheet.get_layers()[layer_idx]
-            first = layer.get_first_frame()
-            last = layer.get_last_frame()
-            if first is not None and last is not None:
-                self._draw_cels_line(context, layer_idx, first, last)
+            for start, end in layer.get_extremes():
+                self._draw_cels_line(context, layer_idx, start, end)
 
     def _draw_elements(self, context):
         if self._zoom_factor > ZOOM_DOTS_MODE:
