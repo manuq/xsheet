@@ -3,6 +3,8 @@ from gettext import gettext as _
 
 from gi.repository import Gtk
 from gi.repository import Gdk
+from gi.repository import Gio
+from gi.repository import GLib
 from gi.repository import GObject
 from gi.repository import GdkPixbuf
 from gi.repository import MyPaint
@@ -47,6 +49,21 @@ class Application(Gtk.Application):
         self.setup()
         self._main_window.present()
 
+    def _about_cb(self, action, state):
+        print("About")
+
+    def _quit_cb(self, action, state):
+        self._quit()
+
+    def _cut_cb(self, action, state):
+        print("Cut")
+
+    def _copy_cb(self, action, state):
+        print("Copy")
+
+    def _paste_cb(self, action, state):
+        print("Paste")
+
     def _quit(self):
         self._xsheet.save('test.zip')
         Gtk.Application.quit(self)
@@ -81,10 +98,36 @@ class Application(Gtk.Application):
             factory.add(name, iconset)
             factory.add_default()
 
-
     def _init_ui(self):
-        self._main_window = Gtk.ApplicationWindow()
-        self._main_window.set_application(self)
+        self._main_window = Gtk.ApplicationWindow(application=self,
+                                                  default_width=640,
+                                                  default_height=480,
+                                                  title=_("xsheet"))
+
+        def add_simple_actions(obj, actions):
+            for action_name, action_cb in actions:
+                action = Gio.SimpleAction(name=action_name)
+                action.connect("activate", action_cb)
+                obj.add_action(action)
+
+        app_actions = (
+            ("about", self._about_cb),
+            ("quit", self._quit_cb),
+        )
+        add_simple_actions(self, app_actions)
+
+        win_actions = (
+            ("cut", self._cut_cb),
+            ("copy", self._copy_cb),
+            ("paste", self._paste_cb)
+        )
+        add_simple_actions(self._main_window, win_actions)
+
+        builder = Gtk.Builder()
+        builder.add_from_file("menu.ui")
+        self.set_app_menu(builder.get_object("app-menu"))
+        self.set_menubar(builder.get_object("menubar"))
+
         self._main_window.props.title = _("xsheet")
         self._main_window.connect("destroy", self._destroy_cb)
         self._main_window.connect("key-press-event", self._key_press_cb)
@@ -235,8 +278,6 @@ class Application(Gtk.Application):
     def _key_release_cb(self, widget, event):
         if event.keyval == Gdk.KEY_p:
             self._toggle_play_stop()
-        elif event.keyval == Gdk.KEY_q:
-            self._quit()
         elif event.keyval == Gdk.KEY_o:
             self._canvas_graph.toggle_onionskin()
         elif event.keyval == Gdk.KEY_e:
