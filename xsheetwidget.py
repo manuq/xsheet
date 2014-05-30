@@ -56,7 +56,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
         self._offset = 0
         self._first_visible_frame = 0
         self._last_visible_frames = 0
-        self._zoom_factor = 1.0
+        self._zoom_factor = 0.63
         self._scrubbing = False
         self._panning = False
         self._pan_start = 0
