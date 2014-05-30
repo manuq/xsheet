@@ -64,6 +64,23 @@ class Application(Gtk.Application):
     def _paste_cb(self, action, state):
         print("Paste")
 
+    def _activate_toggle_cb(window, action, data=None):
+        action.change_state(GLib.Variant('b', not action.get_state()))
+
+    def _change_fullscreen_cb(self, action, state):
+        if state.unpack():
+            self._main_window.fullscreen()
+        else:
+            self._main_window.unfullscreen()
+        action.set_state(state)
+
+    def _change_timeline_cb(self, action, state):
+        if state.unpack():
+            self._xsheet_widget.show()
+        else:
+            self._xsheet_widget.hide()
+        action.set_state(state)
+
     def _quit(self):
         self._xsheet.save('test.zip')
         Gtk.Application.quit(self)
@@ -110,6 +127,14 @@ class Application(Gtk.Application):
                 action.connect("activate", action_cb)
                 obj.add_action(action)
 
+        def add_toggle_actions(obj, actions):
+            for action_name, activate_cb, change_cb, enabled in actions:
+                action = Gio.SimpleAction.new_stateful(action_name, None,
+                                                       GLib.Variant('b', enabled))
+                action.connect("activate", activate_cb)
+                action.connect("change-state", change_cb)
+                obj.add_action(action)
+
         app_actions = (
             ("about", self._about_cb),
             ("quit", self._quit_cb),
@@ -119,9 +144,15 @@ class Application(Gtk.Application):
         win_actions = (
             ("cut", self._cut_cb),
             ("copy", self._copy_cb),
-            ("paste", self._paste_cb)
+            ("paste", self._paste_cb),
         )
         add_simple_actions(self._main_window, win_actions)
+
+        toggle_actions = (
+            ("fullscreen", self._activate_toggle_cb, self._change_fullscreen_cb, False),
+            ("timeline", self._activate_toggle_cb, self._change_timeline_cb, True),
+        )
+        add_toggle_actions(self._main_window, toggle_actions)
 
         builder = Gtk.Builder()
         builder.add_from_file("menu.ui")
@@ -292,8 +323,3 @@ class Application(Gtk.Application):
             self._canvas_widget.view.props.scale -= 0.1
         elif event.keyval == Gdk.KEY_m:
             self._canvas_widget.view.props.scale += 0.1
-        elif event.keyval == Gdk.KEY_Tab:
-            if self._xsheet_widget.is_visible():
-                self._xsheet_widget.hide()
-            else:
-                self._xsheet_widget.show()

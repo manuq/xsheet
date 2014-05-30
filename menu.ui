@@ -19,6 +19,34 @@
 
 <menu id='menubar'>
 <submenu>
+<attribute name='label' translatable='yes'>_File</attribute>
+<section>
+<item>
+  <attribute name='label' translatable='yes'>_New</attribute>
+  <attribute name='action'>win.new</attribute>
+  <attribute name='accel'>&lt;Primary&gt;n</attribute>
+</item>
+<item>
+  <attribute name='label' translatable='yes'>_Open</attribute>
+  <attribute name='action'>win.open</attribute>
+  <attribute name='accel'>&lt;Primary&gt;o</attribute>
+</item>
+<item>
+  <attribute name='label' translatable='yes'>_Save</attribute>
+  <attribute name='action'>win.save</attribute>
+  <attribute name='accel'>&lt;Primary&gt;s</attribute>
+</item>
+</section>
+<section>
+<item>
+  <attribute name='label' translatable='yes'>_Quit</attribute>
+  <attribute name='action'>app.quit</attribute>
+  <attribute name='accel'>&lt;Primary&gt;q</attribute>
+</item>
+</section>
+</submenu>
+
+<submenu>
 <attribute name='label' translatable='yes'>_Edit</attribute>
 <section>
 <item>
@@ -35,6 +63,22 @@
   <attribute name='label' translatable='yes'>_Paste</attribute>
   <attribute name='action'>win.paste</attribute>
   <attribute name='accel'>&lt;Primary&gt;v</attribute>
+</item>
+</section>
+</submenu>
+
+<submenu>
+<attribute name='label' translatable='yes'>_View</attribute>
+<section>
+<item>
+  <attribute name='label' translatable='yes'>_Fullscreen</attribute>
+  <attribute name='action'>win.fullscreen</attribute>
+  <attribute name='accel'>F11</attribute>
+</item>
+<item>
+  <attribute name='label' translatable='yes'>_Timeline</attribute>
+  <attribute name='action'>win.timeline</attribute>
+  <attribute name='accel'>Tab</attribute>
 </item>
 </section>
 </submenu>
