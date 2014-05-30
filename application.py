@@ -42,9 +42,6 @@ class Application(Gtk.Application):
         if os.path.exists('test.zip'):
             self._xsheet.load('test.zip')
 
-    def run(self, args):
-        Gtk.Application.run(self, args)
-
     def do_activate(self):
         self.setup()
         self._main_window.present()
