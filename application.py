@@ -9,6 +9,7 @@ from gi.repository import GObject
 from gi.repository import GdkPixbuf
 from gi.repository import MyPaint
 
+from applicationwindow import ApplicationWindow
 from xsheet import XSheet
 from canvasgraph import CanvasGraph
 from canvaswidget import CanvasWidget
@@ -24,6 +25,7 @@ _settings = get_settings()
 class Application(Gtk.Application):
     def __init__(self):
         Gtk.Application.__init__(self)
+        self.connect("activate", self._activate_cb)
 
     def setup(self):
         self._set_default_settings()
@@ -42,7 +44,7 @@ class Application(Gtk.Application):
         if os.path.exists('test.zip'):
             self._xsheet.load('test.zip')
 
-    def do_activate(self):
+    def _activate_cb(self, app):
         self.setup()
         self._main_window.present()
 
@@ -88,6 +90,13 @@ class Application(Gtk.Application):
             self._xsheet.stop()
         action.set_state(state)
 
+    def _change_onionskin_cb(self, action, state):
+        if state.unpack():
+            self._canvas_graph.set_onionskin_enabled(True)
+        else:
+            self._canvas_graph.set_onionskin_enabled(False)
+        action.set_state(state)
+
     def _quit(self):
         self._xsheet.save('test.zip')
         Gtk.Application.quit(self)
@@ -123,10 +132,7 @@ class Application(Gtk.Application):
             factory.add_default()
 
     def _init_ui(self):
-        self._main_window = Gtk.ApplicationWindow(application=self,
-                                                  default_width=640,
-                                                  default_height=480,
-                                                  title=_("xsheet"))
+        self._main_window = ApplicationWindow(self)
 
         def add_simple_actions(obj, actions):
             for action_name, action_cb in actions:
@@ -160,15 +166,21 @@ class Application(Gtk.Application):
             ("fullscreen", self._activate_toggle_cb, self._change_fullscreen_cb, False),
             ("timeline", self._activate_toggle_cb, self._change_timeline_cb, True),
             ("play", self._activate_toggle_cb, self._change_play_cb, False),
+            ("onionskin", self._activate_toggle_cb, self._change_onionskin_cb, True),
         )
         add_toggle_actions(self._main_window, toggle_actions)
+
+        non_menu_accels = (
+            ("o", "win.onionskin", None),
+        )
+        for accel, action_name, parameter in non_menu_accels:
+            self.add_accelerator(accel, action_name, parameter)
 
         builder = Gtk.Builder()
         builder.add_from_file("menu.ui")
         self.set_app_menu(builder.get_object("app-menu"))
         self.set_menubar(builder.get_object("menubar"))
 
-        self._main_window.props.title = _("xsheet")
         self._main_window.connect("destroy", self._destroy_cb)
         self._main_window.connect("key-press-event", self._key_press_cb)
         self._main_window.connect("key-release-event", self._key_release_cb)
@@ -189,9 +201,9 @@ class Application(Gtk.Application):
         play_button.show()
 
         onionskin_button = Gtk.ToggleToolButton()
+        onionskin_button.set_action_name("win.onionskin")
         onionskin_button.set_stock_id("xsheet-onionskin")
         onionskin_button.set_active(True)
-        onionskin_button.connect("toggled", self._toggle_onionskin_cb)
         toolbar.insert(onionskin_button, -1)
         onionskin_button.show()
 
@@ -249,9 +261,6 @@ class Application(Gtk.Application):
     def _destroy_cb(self, *ignored):
         self._quit()
 
-    def _toggle_onionskin_cb(self, widget):
-        self._canvas_graph.toggle_onionskin()
-
     def _toggle_eraser(self):
         _settings['eraser']['on'] = not _settings['eraser']['on']
 
@@ -307,9 +316,7 @@ class Application(Gtk.Application):
             self._canvas_widget.view.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
-        if event.keyval == Gdk.KEY_o:
-            self._canvas_graph.toggle_onionskin()
-        elif event.keyval == Gdk.KEY_e:
+        if event.keyval == Gdk.KEY_e:
             self._toggle_eraser()
         elif event.keyval == Gdk.KEY_BackSpace:
             self._xsheet.remove_clear()

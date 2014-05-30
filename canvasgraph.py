@@ -122,8 +122,8 @@ class CanvasGraph(object):
         # debug
         # print_connections(self._nodes['root_node'])
 
-    def toggle_onionskin(self):
-        _settings['onionskin']['on'] = not _settings['onionskin']['on']
+    def set_onionskin_enabled(self, enabled):
+        _settings['onionskin']['on'] = enabled
 
         for layer_idx in range(self._xsheet.layers_length):
             layer_nodes = self._nodes['layer_nodes'][layer_idx]
