@@ -82,6 +82,17 @@
 </item>
 </section>
 </submenu>
+
+<submenu>
+<attribute name='label' translatable='yes'>_Playback</attribute>
+<section>
+<item>
+  <attribute name='label' translatable='yes'>_Play</attribute>
+  <attribute name='action'>win.play</attribute>
+  <attribute name='accel'>p</attribute>
+</item>
+</section>
+</submenu>
 </menu>
 
 </interface>

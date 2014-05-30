@@ -81,6 +81,13 @@ class Application(Gtk.Application):
             self._xsheet_widget.hide()
         action.set_state(state)
 
+    def _change_play_cb(self, action, state):
+        if state.unpack():
+            self._xsheet.play()
+        else:
+            self._xsheet.stop()
+        action.set_state(state)
+
     def _quit(self):
         self._xsheet.save('test.zip')
         Gtk.Application.quit(self)
@@ -151,6 +158,7 @@ class Application(Gtk.Application):
         toggle_actions = (
             ("fullscreen", self._activate_toggle_cb, self._change_fullscreen_cb, False),
             ("timeline", self._activate_toggle_cb, self._change_timeline_cb, True),
+            ("play", self._activate_toggle_cb, self._change_play_cb, False),
         )
         add_toggle_actions(self._main_window, toggle_actions)
 
@@ -174,8 +182,8 @@ class Application(Gtk.Application):
         toolbar.show()
 
         play_button = Gtk.ToggleToolButton()
+        play_button.set_action_name("win.play")
         play_button.set_stock_id("xsheet-play")
-        play_button.connect("toggled", self._toggle_play_cb)
         toolbar.insert(play_button, -1)
         play_button.show()
 
@@ -240,15 +248,6 @@ class Application(Gtk.Application):
     def _destroy_cb(self, *ignored):
         self._quit()
 
-    def _toggle_play_stop(self):
-        if self._xsheet.is_playing:
-            self._xsheet.stop()
-        else:
-            self._xsheet.play()
-
-    def _toggle_play_cb(self, widget):
-        self._toggle_play_stop()
-
     def _toggle_onionskin_cb(self, widget):
         self._canvas_graph.toggle_onionskin()
 
@@ -307,9 +306,7 @@ class Application(Gtk.Application):
             self._canvas_widget.view.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
-        if event.keyval == Gdk.KEY_p:
-            self._toggle_play_stop()
-        elif event.keyval == Gdk.KEY_o:
+        if event.keyval == Gdk.KEY_o:
             self._canvas_graph.toggle_onionskin()
         elif event.keyval == Gdk.KEY_e:
             self._toggle_eraser()
