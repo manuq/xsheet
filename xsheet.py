@@ -255,6 +255,10 @@ class XSheet(GObject.GObject):
             os.remove(filename)
         os.rename(filename + '.tmpsave', filename)
 
+    def new(self, layers_length=3):
+        self._setup(layers_length)
+        self.emit("frame-changed")
+
     def load(self, filename):
         tempdir = tempfile.mkdtemp('xsheet')
         xsheet_zip = zipfile.ZipFile(filename)

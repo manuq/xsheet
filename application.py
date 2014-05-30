@@ -55,6 +55,9 @@ class Application(Gtk.Application):
     def _quit_cb(self, action, state):
         self._quit()
 
+    def _new_cb(self, action, state):
+        self._xsheet.new()
+
     def _cut_cb(self, action, state):
         print("Cut")
 
@@ -149,6 +152,7 @@ class Application(Gtk.Application):
         add_simple_actions(self, app_actions)
 
         win_actions = (
+            ("new", self._new_cb),
             ("cut", self._cut_cb),
             ("copy", self._copy_cb),
             ("paste", self._paste_cb),
