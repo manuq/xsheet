@@ -11,8 +11,8 @@ _settings = get_settings()
 
 
 CORNER_MARGIN = 10
-TICK_STRONG_RADIUS = 30
-TICK_SOFT_RADIUS = 15
+TICK_STRONG_RADIUS = 10
+TICK_SOFT_RADIUS = 5
 TICK_SIZE = TICK_STRONG_RADIUS + CORNER_MARGIN
 
 _PAN_STEP = 50
@@ -29,6 +29,7 @@ class CanvasView(GeglGtk.View):
         self._xsheet = xsheet
         self._xsheet.connect('frame-changed', self._frame_changed_cb)
 
+        self._tick_y = None
         self.connect('draw', self._draw_cb)
 
     def _frame_changed_cb(self, xsheet):
@@ -52,15 +53,26 @@ class CanvasView(GeglGtk.View):
         context.stroke()
         context.restore()
 
+    def _get_tick_y(self, context):
+        if self._tick_y is None:
+            text_h = context.text_extents("0")[3]
+            self._tick_y = text_h + TICK_SIZE + CORNER_MARGIN
+        return self._tick_y
+
     def _draw_tick(self, widget, context, strong=False):
+        width = widget.get_allocated_width()
+
         if strong:
             radius = TICK_STRONG_RADIUS
         else:
             radius = TICK_SOFT_RADIUS
 
+        context.save()
+        context.translate(width - TICK_SIZE, self._get_tick_y(context))
         context.set_source_rgb(0, 0, 0)
-        context.arc(TICK_SIZE, TICK_SIZE, radius, 0, 2 * math.pi)
+        context.arc(0, 0, radius, 0, 2 * math.pi)
         context.fill()
+        context.restore()
 
     def _draw_cb(self, widget, context):
         self._draw_frame_number(widget, context)
