@@ -81,6 +81,28 @@ class Application(Gtk.Application):
     def _previous_layer_cb(self, action, state):
         self._xsheet.previous_layer()
 
+    def _pan_view_up_cb(self, action, state):
+        scale = self._canvas_widget.view.props.scale
+        self._canvas_widget.view.props.y -= 10 * scale
+
+    def _pan_view_down_cb(self, action, state):
+        scale = self._canvas_widget.view.props.scale
+        self._canvas_widget.view.props.y += 10 * scale
+
+    def _pan_view_left_cb(self, action, state):
+        scale = self._canvas_widget.view.props.scale
+        self._canvas_widget.view.props.x -= 10 * scale
+
+    def _pan_view_right_cb(self, action, state):
+        scale = self._canvas_widget.view.props.scale
+        self._canvas_widget.view.props.x += 10 * scale
+
+    def _zoom_view_in_cb(self, action, state):
+        self._canvas_widget.view.props.scale += 0.1
+
+    def _zoom_view_out_cb(self, action, state):
+        self._canvas_widget.view.props.scale -= 0.1
+
     def _activate_toggle_cb(window, action, data=None):
         action.change_state(GLib.Variant('b', not action.get_state()))
 
@@ -170,10 +192,10 @@ class Application(Gtk.Application):
                 obj.add_action(action)
 
         def add_toggle_actions(obj, actions):
-            for action_name, activate_cb, change_cb, enabled in actions:
+            for action_name, change_cb, enabled in actions:
                 action = Gio.SimpleAction.new_stateful(action_name, None,
                                                        GLib.Variant('b', enabled))
-                action.connect("activate", activate_cb)
+                action.connect("activate", self._activate_toggle_cb)
                 action.connect("change-state", change_cb)
                 obj.add_action(action)
 
@@ -193,16 +215,22 @@ class Application(Gtk.Application):
             ("previous_frame", self._previous_frame_cb),
             ("next_layer", self._next_layer_cb),
             ("previous_layer", self._previous_layer_cb),
+            ("pan_view_up", self._pan_view_up_cb),
+            ("pan_view_down", self._pan_view_down_cb),
+            ("pan_view_left", self._pan_view_left_cb),
+            ("pan_view_right", self._pan_view_right_cb),
+            ("zoom_view_in", self._zoom_view_in_cb),
+            ("zoom_view_out", self._zoom_view_out_cb),
         )
         add_simple_actions(self._main_window, win_actions)
 
         toggle_actions = (
-            ("fullscreen", self._activate_toggle_cb, self._change_fullscreen_cb, False),
-            ("timeline", self._activate_toggle_cb, self._change_timeline_cb, True),
-            ("play", self._activate_toggle_cb, self._change_play_cb, False),
-            ("onionskin", self._activate_toggle_cb, self._change_onionskin_cb, True),
-            ("eraser", self._activate_toggle_cb, self._change_eraser_cb, False),
-            ("metronome", self._activate_toggle_cb, self._change_metronome_cb, False),
+            ("fullscreen", self._change_fullscreen_cb, False),
+            ("timeline", self._change_timeline_cb, True),
+            ("play", self._change_play_cb, False),
+            ("onionskin", self._change_onionskin_cb, True),
+            ("eraser", self._change_eraser_cb, False),
+            ("metronome", self._change_metronome_cb, False),
         )
         add_toggle_actions(self._main_window, toggle_actions)
 
@@ -214,6 +242,12 @@ class Application(Gtk.Application):
             ("<Control>Down", "win.next_frame", None),
             ("<Control>Left", "win.previous_layer", None),
             ("<Control>Right", "win.next_layer", None),
+            ("<Control><Shift>Up", "win.pan_view_up", None),
+            ("<Control><Shift>Down", "win.pan_view_down", None),
+            ("<Control><Shift>Left", "win.pan_view_left", None),
+            ("<Control><Shift>Right", "win.pan_view_right", None),
+            ("comma", "win.zoom_view_in", None),
+            ("period", "win.zoom_view_out", None),
         )
         for accel, action_name, parameter in non_menu_accels:
             self.add_accelerator(accel, action_name, parameter)
@@ -224,8 +258,7 @@ class Application(Gtk.Application):
         self.set_menubar(builder.get_object("menubar"))
 
         self._main_window.connect("destroy", self._destroy_cb)
-        self._main_window.connect("key-press-event", self._key_press_cb)
-        self._main_window.connect("key-release-event", self._key_release_cb)
+        # self._main_window.connect("key-release-event", self._key_release_cb)
         self._main_window.show()
 
         top_box = Gtk.Grid()
@@ -319,20 +352,5 @@ class Application(Gtk.Application):
         dialog = SettingsDialog(widget.get_toplevel())
         dialog.show()
 
-    def _key_press_cb(self, widget, event):
-        scale = self._canvas_widget.view.props.scale
-
-        if event.keyval == Gdk.KEY_h:
-            self._canvas_widget.view.props.x -= 10 * scale
-        elif event.keyval == Gdk.KEY_l:
-            self._canvas_widget.view.props.x += 10 * scale
-        elif event.keyval == Gdk.KEY_k:
-            self._canvas_widget.view.props.y -= 10 * scale
-        elif event.keyval == Gdk.KEY_j:
-            self._canvas_widget.view.props.y += 10 * scale
-
     def _key_release_cb(self, widget, event):
-        if event.keyval == Gdk.KEY_n:
-            self._canvas_widget.view.props.scale -= 0.1
-        elif event.keyval == Gdk.KEY_m:
-            self._canvas_widget.view.props.scale += 0.1
+        print(Gdk.keyval_name(event.keyval))
