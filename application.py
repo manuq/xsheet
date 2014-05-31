@@ -97,6 +97,20 @@ class Application(Gtk.Application):
             self._canvas_graph.set_onionskin_enabled(False)
         action.set_state(state)
 
+    def _change_eraser_cb(self, action, state):
+        if state.unpack():
+            self._set_eraser_enabled(True)
+        else:
+            self._set_eraser_enabled(False)
+        action.set_state(state)
+
+    def _change_metronome_cb(self, action, state):
+        if state.unpack():
+            self._metronome.activate()
+        else:
+            self._metronome.deactivate()
+        action.set_state(state)
+
     def _quit(self):
         self._xsheet.save('test.zip')
         Gtk.Application.quit(self)
@@ -167,11 +181,14 @@ class Application(Gtk.Application):
             ("timeline", self._activate_toggle_cb, self._change_timeline_cb, True),
             ("play", self._activate_toggle_cb, self._change_play_cb, False),
             ("onionskin", self._activate_toggle_cb, self._change_onionskin_cb, True),
+            ("eraser", self._activate_toggle_cb, self._change_eraser_cb, False),
+            ("metronome", self._activate_toggle_cb, self._change_metronome_cb, False),
         )
         add_toggle_actions(self._main_window, toggle_actions)
 
         non_menu_accels = (
             ("o", "win.onionskin", None),
+            ("e", "win.eraser", None),
         )
         for accel, action_name, parameter in non_menu_accels:
             self.add_accelerator(accel, action_name, parameter)
@@ -203,13 +220,12 @@ class Application(Gtk.Application):
         onionskin_button = Gtk.ToggleToolButton()
         onionskin_button.set_action_name("win.onionskin")
         onionskin_button.set_stock_id("xsheet-onionskin")
-        onionskin_button.set_active(True)
         toolbar.insert(onionskin_button, -1)
         onionskin_button.show()
 
         eraser_button = Gtk.ToggleToolButton()
+        eraser_button.set_action_name("win.eraser")
         eraser_button.set_stock_id("xsheet-eraser")
-        eraser_button.connect("toggled", self._toggle_eraser_cb)
         toolbar.insert(eraser_button, -1)
         eraser_button.show()
 
@@ -220,8 +236,8 @@ class Application(Gtk.Application):
         remove_clear_button.show()
 
         metronome_button = Gtk.ToggleToolButton()
+        metronome_button.set_action_name("win.metronome")
         metronome_button.set_stock_id("xsheet-metronome")
-        metronome_button.connect("toggled", self._toggle_metronome_cb)
         toolbar.insert(metronome_button, -1)
         metronome_button.show()
 
@@ -261,8 +277,8 @@ class Application(Gtk.Application):
     def _destroy_cb(self, *ignored):
         self._quit()
 
-    def _toggle_eraser(self):
-        _settings['eraser']['on'] = not _settings['eraser']['on']
+    def _set_eraser_enabled(self, enabled):
+        _settings['eraser']['on'] = enabled
 
         brush = _settings['brush']
         if _settings['eraser']['on']:
@@ -279,12 +295,6 @@ class Application(Gtk.Application):
 
     def _remove_clear_click_cb(self, widget):
         self._xsheet.remove_clear()
-
-    def _toggle_metronome(self):
-        if self._metronome.is_on():
-            self._metronome.activate()
-        else:
-            self._metronome.deactivate()
 
     def _toggle_metronome_cb(self, widget):
         self._toggle_metronome()
@@ -316,9 +326,7 @@ class Application(Gtk.Application):
             self._canvas_widget.view.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
-        if event.keyval == Gdk.KEY_e:
-            self._toggle_eraser()
-        elif event.keyval == Gdk.KEY_BackSpace:
+        if event.keyval == Gdk.KEY_BackSpace:
             self._xsheet.remove_clear()
         elif event.keyval == Gdk.KEY_Left:
             self._xsheet.previous_layer()
