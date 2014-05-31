@@ -15,6 +15,9 @@ TICK_STRONG_RADIUS = 30
 TICK_SOFT_RADIUS = 15
 TICK_SIZE = TICK_STRONG_RADIUS + CORNER_MARGIN
 
+_PAN_STEP = 50
+_ZOOM_STEP = 0.1
+
 
 class CanvasView(GeglGtk.View):
     def __init__(self, xsheet):
@@ -96,6 +99,20 @@ class CanvasWidget(Gtk.EventBox):
     @property
     def view(self):
         return self._view
+
+    def pan_view(self, direction):
+        scale = self._view.props.scale
+        if direction == "up":
+            self._view.props.y -= _PAN_STEP * scale
+        elif direction == "down":
+            self._view.props.y += _PAN_STEP * scale
+        elif direction == "left":
+            self._view.props.x -= _PAN_STEP * scale
+        elif direction == "right":
+            self._view.props.x += _PAN_STEP * scale
+
+    def zoom_view(self, direction):
+        self._view.props.scale += _ZOOM_STEP * direction
 
     def _xsheet_changed_cb(self, xsheet):
         cel = self._xsheet.get_cel()
