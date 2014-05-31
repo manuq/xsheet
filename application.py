@@ -66,6 +66,21 @@ class Application(Gtk.Application):
     def _paste_cb(self, action, state):
         print("Paste")
 
+    def _remove_clear_cb(self, action, state):
+        self._xsheet.remove_clear()
+
+    def _next_frame_cb(self, action, state):
+        self._xsheet.next_frame()
+
+    def _previous_frame_cb(self, action, state):
+        self._xsheet.previous_frame()
+
+    def _next_layer_cb(self, action, state):
+        self._xsheet.next_layer()
+
+    def _previous_layer_cb(self, action, state):
+        self._xsheet.previous_layer()
+
     def _activate_toggle_cb(window, action, data=None):
         action.change_state(GLib.Variant('b', not action.get_state()))
 
@@ -173,6 +188,11 @@ class Application(Gtk.Application):
             ("cut", self._cut_cb),
             ("copy", self._copy_cb),
             ("paste", self._paste_cb),
+            ("remove_clear", self._remove_clear_cb),
+            ("next_frame", self._next_frame_cb),
+            ("previous_frame", self._previous_frame_cb),
+            ("next_layer", self._next_layer_cb),
+            ("previous_layer", self._previous_layer_cb),
         )
         add_simple_actions(self._main_window, win_actions)
 
@@ -189,6 +209,11 @@ class Application(Gtk.Application):
         non_menu_accels = (
             ("o", "win.onionskin", None),
             ("e", "win.eraser", None),
+            ("BackSpace", "win.remove_clear", None),
+            ("<Control>Up", "win.previous_frame", None),
+            ("<Control>Down", "win.next_frame", None),
+            ("<Control>Left", "win.previous_layer", None),
+            ("<Control>Right", "win.next_layer", None),
         )
         for accel, action_name, parameter in non_menu_accels:
             self.add_accelerator(accel, action_name, parameter)
@@ -230,8 +255,8 @@ class Application(Gtk.Application):
         eraser_button.show()
 
         remove_clear_button = Gtk.ToolButton()
+        remove_clear_button.set_action_name("win.remove_clear")
         remove_clear_button.set_stock_id("xsheet-clear")
-        remove_clear_button.connect("clicked", self._remove_clear_click_cb)
         toolbar.insert(remove_clear_button, -1)
         remove_clear_button.show()
 
@@ -254,14 +279,14 @@ class Application(Gtk.Application):
         separator.show()
 
         prev_layer_button = Gtk.ToolButton()
+        prev_layer_button.set_action_name("win.previous_layer")
         prev_layer_button.set_stock_id("xsheet-prev-layer")
-        prev_layer_button.connect("clicked", self._prev_layer_click_cb)
         toolbar.insert(prev_layer_button, -1)
         prev_layer_button.show()
 
         next_layer_button = Gtk.ToolButton()
+        next_layer_button.set_action_name("win.next_layer")
         next_layer_button.set_stock_id("xsheet-next-layer")
-        next_layer_button.connect("clicked", self._next_layer_click_cb)
         toolbar.insert(next_layer_button, -1)
         next_layer_button.show()
 
@@ -290,33 +315,14 @@ class Application(Gtk.Application):
             set_base_value(brush, "radius_logarithmic",
                            self._default_radius)
 
-    def _toggle_eraser_cb(self, widget):
-        self._toggle_eraser()
-
-    def _remove_clear_click_cb(self, widget):
-        self._xsheet.remove_clear()
-
-    def _toggle_metronome_cb(self, widget):
-        self._toggle_metronome()
-
     def _settings_click_cb(self, widget):
         dialog = SettingsDialog(widget.get_toplevel())
         dialog.show()
 
-    def _prev_layer_click_cb(self, widget):
-        self._xsheet.previous_layer()
-
-    def _next_layer_click_cb(self, widget):
-        self._xsheet.next_layer()
-
     def _key_press_cb(self, widget, event):
         scale = self._canvas_widget.view.props.scale
 
-        if event.keyval == Gdk.KEY_Up:
-            self._xsheet.previous_frame()
-        elif event.keyval == Gdk.KEY_Down:
-            self._xsheet.next_frame()
-        elif event.keyval == Gdk.KEY_h:
+        if event.keyval == Gdk.KEY_h:
             self._canvas_widget.view.props.x -= 10 * scale
         elif event.keyval == Gdk.KEY_l:
             self._canvas_widget.view.props.x += 10 * scale
@@ -326,13 +332,7 @@ class Application(Gtk.Application):
             self._canvas_widget.view.props.y += 10 * scale
 
     def _key_release_cb(self, widget, event):
-        if event.keyval == Gdk.KEY_BackSpace:
-            self._xsheet.remove_clear()
-        elif event.keyval == Gdk.KEY_Left:
-            self._xsheet.previous_layer()
-        elif event.keyval == Gdk.KEY_Right:
-            self._xsheet.next_layer()
-        elif event.keyval == Gdk.KEY_n:
+        if event.keyval == Gdk.KEY_n:
             self._canvas_widget.view.props.scale -= 0.1
         elif event.keyval == Gdk.KEY_m:
             self._canvas_widget.view.props.scale += 0.1
