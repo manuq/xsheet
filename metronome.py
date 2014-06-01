@@ -21,7 +21,7 @@ class Metronome(object):
             directory, 'data', 'sounds', 'strong_tick.wav')
 
     def is_on(self):
-        return self._frame_changed_hid is None
+        return self._frame_changed_hid is not None
 
     def activate(self):
         if self._frame_changed_hid is not None:

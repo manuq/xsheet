@@ -76,10 +76,14 @@ class CanvasView(GeglGtk.View):
 
     def _draw_cb(self, widget, context):
         self._draw_frame_number(widget, context)
-        if self._xsheet.current_frame % 24 == 0:
-            self._draw_tick(widget, context, True)
-        elif self._xsheet.current_frame % self._xsheet.frames_separation == 0:
-            self._draw_tick(widget, context, False)
+
+        from application import get_application
+        metronome = get_application().get_metronome()
+        if metronome.is_on():
+            if self._xsheet.current_frame % 24 == 0:
+                self._draw_tick(widget, context, True)
+            elif self._xsheet.current_frame % self._xsheet.frames_separation == 0:
+                self._draw_tick(widget, context, False)
 
 
 class CanvasWidget(Gtk.EventBox):

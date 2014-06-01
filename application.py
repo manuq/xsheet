@@ -20,8 +20,12 @@ _settings = get_settings()
 
 
 class Application(Gtk.Application):
+    _INSTANCE = None
+
     def __init__(self):
+        assert Application._INSTANCE is None
         Gtk.Application.__init__(self)
+        Application._INSTANCE = self
         self.connect("activate", self._activate_cb)
 
     def setup(self):
@@ -40,6 +44,9 @@ class Application(Gtk.Application):
     def _activate_cb(self, app):
         self.setup()
         self._main_window.present()
+
+    def get_metronome(self):
+        return self._metronome
 
     def _about_cb(self, action, state):
         print("About")
@@ -265,3 +272,7 @@ class Application(Gtk.Application):
             set_base_value(brush, "eraser", self._default_eraser)
             set_base_value(brush, "radius_logarithmic",
                            self._default_radius)
+
+
+def get_application():
+    return Application._INSTANCE
