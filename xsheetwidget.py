@@ -45,6 +45,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
                 'theme_selected_bg_color')[1])
         self._fg_color = _get_cairo_color(
             self.get_style_context().lookup_color('theme_fg_color')[1])
+        self._fg_grey_color = (0.6, 0.6, 0.6)
         self._selected_fg_color = _get_cairo_color(
             self.get_style_context().lookup_color(
                 'theme_selected_fg_color')[1])
@@ -320,7 +321,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
             context.show_text(text)
             context.stroke()
 
-    def _draw_cel(self, context, layer_idx, frame, repeat):
+    def _draw_cel(self, context, layer_idx, frame):
         context.set_line_width(STRONG_LINE_WIDTH)
         if frame == self._xsheet.current_frame:
             context.set_source_rgb(*self._selected_fg_color)
@@ -330,10 +331,8 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.arc(NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5),
                     CEL_HEIGHT * self._zoom_factor * (frame + 0.5),
                     ELEMENT_CEL_RADIUS, 0, 2 * math.pi)
-        if repeat:
-            context.stroke()
-        else:
-            context.fill()
+
+        context.fill()
 
     def _draw_clear(self, context, layer_idx, frame):
         context.set_line_width(STRONG_LINE_WIDTH * 3)
@@ -353,10 +352,6 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.stroke()
 
     def _draw_cels_line(self, context, layer_idx, first_frame, last_frame):
-        context.set_line_cap(cairo.LINE_CAP_ROUND)
-        context.set_line_width(STRONG_LINE_WIDTH * 10)
-        context.set_source_rgb(*self._fg_color)
-
         center_x = NUMBERS_WIDTH + CEL_WIDTH * (layer_idx + 0.5)
         y1 = CEL_HEIGHT * self._zoom_factor * (first_frame + 0.5)
         if last_frame is not None:
@@ -368,7 +363,16 @@ class _XSheetDrawing(Gtk.DrawingArea):
         context.line_to(center_x, y2)
         context.stroke()
 
-    def _draw_elements_dots(self, context):
+    def _draw_elements(self, context):
+        context.set_line_cap(cairo.LINE_CAP_ROUND)
+        context.set_line_width(STRONG_LINE_WIDTH * 10)
+        context.set_source_rgb(*self._fg_grey_color)
+
+        for layer_idx in range(self._xsheet.layers_length):
+            layer = self._xsheet.get_layers()[layer_idx]
+            for start, end in layer.get_extremes():
+                self._draw_cels_line(context, layer_idx, start, end)
+
         first = self._first_visible_frame
         last = self._last_visible_frames
 
@@ -380,21 +384,7 @@ class _XSheetDrawing(Gtk.DrawingArea):
                 elif layer.get_type_at(frame) == 'clear':
                     self._draw_clear(context, layer_idx, frame)
                 elif layer.get_type_at(frame) == 'cel':
-                    self._draw_cel(context, layer_idx, frame, repeat=False)
-                elif layer.get_type_at(frame) == 'repeat cel':
-                    self._draw_cel(context, layer_idx, frame, repeat=True)
-
-    def _draw_elements_lines(self, context):
-        for layer_idx in range(self._xsheet.layers_length):
-            layer = self._xsheet.get_layers()[layer_idx]
-            for start, end in layer.get_extremes():
-                self._draw_cels_line(context, layer_idx, start, end)
-
-    def _draw_elements(self, context):
-        if self._zoom_factor > ZOOM_DOTS_MODE:
-            self._draw_elements_dots(context)
-        else:
-            self._draw_elements_lines(context)
+                    self._draw_cel(context, layer_idx, frame)
 
     def _get_frame_from_point(self, x, y):
         return int((y - self._offset) / CEL_HEIGHT / self._zoom_factor)
