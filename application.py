@@ -118,9 +118,16 @@ class Application(Gtk.Application):
 
     def _change_play_cb(self, action, state):
         if state.unpack():
-            self._xsheet.play()
+            self._xsheet.play(_settings['play']['loop'])
         else:
             self._xsheet.stop()
+        action.set_state(state)
+
+    def _change_play_loop_cb(self, action, state):
+        if state.unpack():
+            _settings['play']['loop'] = True
+        else:
+            _settings['play']['loop'] = False
         action.set_state(state)
 
     def _change_onionskin_cb(self, action, state):
@@ -165,6 +172,9 @@ class Application(Gtk.Application):
 
         _settings['eraser'] = {}
         _settings['eraser']['on'] = False
+
+        _settings['play'] = {}
+        _settings['play']['loop'] = False
 
     def _setup_icons(self):
         factory = Gtk.IconFactory()
@@ -225,6 +235,7 @@ class Application(Gtk.Application):
             ("fullscreen", self._change_fullscreen_cb, False),
             ("timeline", self._change_timeline_cb, True),
             ("play", self._change_play_cb, False),
+            ("play_loop", self._change_play_loop_cb, False),
             ("onionskin", self._change_onionskin_cb, True),
             ("eraser", self._change_eraser_cb, False),
             ("metronome", self._change_metronome_cb, False),

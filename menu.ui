@@ -91,6 +91,10 @@
   <attribute name='action'>win.play</attribute>
   <attribute name='accel'>p</attribute>
 </item>
+<item>
+  <attribute name='label' translatable='yes'>_Play in loop</attribute>
+  <attribute name='action'>win.play_loop</attribute>
+</item>
 </section>
 </submenu>
 </menu>
