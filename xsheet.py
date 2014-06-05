@@ -61,6 +61,7 @@ class XSheet(GObject.GObject):
     __gsignals__ = {
         "frame-changed": (GObject.SignalFlags.RUN_FIRST, None, []),
         "layer-changed": (GObject.SignalFlags.RUN_FIRST, None, []),
+        "cursor-changed": (GObject.SignalFlags.RUN_FIRST, None, []),
     }
 
     def __init__(self, layers_length=3):
@@ -77,6 +78,22 @@ class XSheet(GObject.GObject):
     def get_layers(self):
         return self.layers
 
+    @property
+    def cursor(self):
+        return self.current_frame, self.layer_idx
+
+    @property
+    def is_playing(self):
+        return self._play_hid is not None
+
+    @property
+    def layers_length(self):
+        return len(self.layers)
+
+    @property
+    def frames_separation(self):
+        return 6
+
     def go_to_frame(self, frame_idx):
         cant_go = (frame_idx < 0 or frame_idx == self.current_frame)
         if cant_go:
@@ -84,7 +101,7 @@ class XSheet(GObject.GObject):
 
         self.current_frame = frame_idx
 
-        self.emit("frame-changed")
+        self._emit_signals(frame_changed=True)
         return True
 
     def previous_frame(self, loop=False):
@@ -98,7 +115,7 @@ class XSheet(GObject.GObject):
 
         self.current_frame -= 1
 
-        self.emit("frame-changed")
+        self._emit_signals(frame_changed=True)
         return True
 
     def next_frame(self, loop=False):
@@ -109,7 +126,7 @@ class XSheet(GObject.GObject):
 
         self.current_frame += 1
 
-        self.emit("frame-changed")
+        self._emit_signals(frame_changed=True)
         return True
 
     def play(self, loop=False):
@@ -118,7 +135,8 @@ class XSheet(GObject.GObject):
 
         if loop:
             self.current_frame = self._get_first_frame()
-            self.emit("frame-changed")
+            self._emit_signals(frame_changed=True)
+
         self._play_hid = GObject.timeout_add(FPMS, self.next_frame, loop)
         return True
 
@@ -130,17 +148,13 @@ class XSheet(GObject.GObject):
         self._play_hid = None
         return True
 
-    @property
-    def is_playing(self):
-        return self._play_hid is not None
-
     def previous_layer(self):
         if self.layer_idx == 0:
             return False
 
         self.layer_idx -= 1
 
-        self.emit("layer-changed")
+        self._emit_signals(layer_changed=True)
         return True
 
     def next_layer(self):
@@ -149,7 +163,7 @@ class XSheet(GObject.GObject):
 
         self.layer_idx += 1
 
-        self.emit("layer-changed")
+        self._emit_signals(layer_changed=True)
         return True
 
     def get_cel(self, frame_idx=None, layer_idx=None):
@@ -189,7 +203,7 @@ class XSheet(GObject.GObject):
 
         if not self.layers[layer_idx].has_cel_at(frame_idx):
             self.layers[layer_idx][frame_idx] = Cel()
-            self.emit("frame-changed")
+            self._emit_signals(frame_changed=True)
 
     def remove_clear(self, frame_idx=None, layer_idx=None):
         if frame_idx is None:
@@ -199,7 +213,24 @@ class XSheet(GObject.GObject):
             layer_idx = self.layer_idx
 
         self.layers[layer_idx].remove_clear(frame_idx)
-        self.emit("frame-changed")
+        self._emit_signals(frame_changed=True)
+
+    def cut(self, frame_idx=None, layer_idx=None):
+        pass
+
+    def copy(self, frame_idx=None, layer_idx=None):
+        pass
+
+    def paste(self, frame_idx=None, layer_idx=None):
+        pass
+
+    def _emit_signals(self, frame_changed=False, layer_changed=False):
+        if frame_changed:
+            self.emit("frame-changed")
+        if layer_changed:
+            self.emit("layer-changed")
+        if frame_changed or layer_changed:
+            self.emit("cursor-changed")
 
     def _get_cel_path(self, layer_idx, frame_idx, extension):
         return "cels/{0}-{1}.{2}".format(str(layer_idx).zfill(3),
@@ -207,7 +238,6 @@ class XSheet(GObject.GObject):
                                          extension)
 
     def _get_data(self):
-
         data = []
         for layer_idx, layer in enumerate(self.layers):
             layer_data = {}
@@ -257,7 +287,7 @@ class XSheet(GObject.GObject):
 
     def new(self, layers_length=3):
         self._setup(layers_length)
-        self.emit("frame-changed")
+        self._emit_signals(frame_changed=True, layer_changed=True)
 
     def load(self, filename):
         tempdir = tempfile.mkdtemp('xsheet')
@@ -286,15 +316,7 @@ class XSheet(GObject.GObject):
         xsheet_zip.close()
         os.rmdir(tempdir)
 
-        self.emit("frame-changed")
-
-    @property
-    def layers_length(self):
-        return len(self.layers)
-
-    @property
-    def frames_separation(self):
-        return 6
+        self._emit_signals(frame_changed=True, layer_changed=True)
 
     def _get_first_frame(self):
         first_frames = [layer.get_first_frame() for layer in self.layers]

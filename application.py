@@ -32,6 +32,7 @@ class Application(Gtk.Application):
         self._set_default_settings()
 
         self._xsheet = XSheet()
+        self._xsheet.connect("cursor-changed", self._cursor_changed_cb)
         self._canvas_graph = CanvasGraph(self._xsheet)
         self._metronome = Metronome(self._xsheet)
 
@@ -58,13 +59,13 @@ class Application(Gtk.Application):
         self._xsheet.new()
 
     def _cut_cb(self, action, state):
-        print("Cut")
+        self._xsheet.cut()
 
     def _copy_cb(self, action, state):
-        print("Copy")
+        self._xsheet.copy()
 
     def _paste_cb(self, action, state):
-        print("Paste")
+        self._xsheet.paste()
 
     def _remove_clear_cb(self, action, state):
         self._xsheet.remove_clear()
@@ -283,6 +284,17 @@ class Application(Gtk.Application):
             set_base_value(brush, "eraser", self._default_eraser)
             set_base_value(brush, "radius_logarithmic",
                            self._default_radius)
+
+    def _cursor_changed_cb(self, xsheet):
+        cut_action = self._main_window.lookup_action("cut")
+        copy_action = self._main_window.lookup_action("copy")
+
+        if cut_action.props.enabled and self._xsheet.get_cel() is None:
+            cut_action.props.enabled = False
+            copy_action.props.enabled = False
+        elif not cut_action.props.enabled and self._xsheet.get_cel() is not None:
+            cut_action.props.enabled = True
+            copy_action.props.enabled = True
 
 
 def get_application():

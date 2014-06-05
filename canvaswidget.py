@@ -92,8 +92,7 @@ class CanvasWidget(Gtk.EventBox):
         self.props.expand = True
 
         self._xsheet = xsheet
-        self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
-        self._xsheet.connect('layer-changed', self._xsheet_changed_cb)
+        self._xsheet.connect('cursor-changed', self._xsheet_changed_cb)
 
         self._drawing = False
         self._panning = False

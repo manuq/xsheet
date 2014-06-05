@@ -20,8 +20,7 @@ def print_connections(node):
 class CanvasGraph(object):
     def __init__(self, xsheet):
         self._xsheet = xsheet
-        self._xsheet.connect('frame-changed', self._xsheet_changed_cb)
-        self._xsheet.connect('layer-changed', self._xsheet_changed_cb)
+        self._xsheet.connect('cursor-changed', self._xsheet_changed_cb)
 
         self._graph = None
         self._nodes = {}
