@@ -42,6 +42,24 @@ class Cel(object):
         write.process()
         self.surface_node.process()
 
+    def copy(self):
+        new_cel = Cel()
+
+        cel_buffer = self.gegl_surface.get_buffer()
+        new_buffer = new_cel.gegl_surface.get_buffer()
+        new_buffer.set_extent(cel_buffer.get_extent())
+
+        translate = graph.create_child("gegl:translate")
+        translate.set_property('x', cel_buffer.props.x)
+        translate.set_property('y', cel_buffer.props.y)
+        write = graph.create_child("gegl:write-buffer")
+        write.set_property('buffer', cel_buffer)
+        load.connect_to("output", translate, "input")
+        translate.connect_to("output", write, "input")
+        write.process()
+
+        return new_cel
+
     def extent_to_data(self):
         rect = self.gegl_surface.get_buffer().get_extent()
         return [rect.x, rect.y, rect.width, rect.height]
@@ -70,6 +88,8 @@ class XSheet(GObject.GObject):
         self.current_frame = 0
         self.layer_idx = 0
         self._play_hid = None
+        self.layers = None
+        self._edit_cel = None
         self._setup(layers_length)
 
     def _setup(self, layers_length):
@@ -216,13 +236,42 @@ class XSheet(GObject.GObject):
         self._emit_signals(frame_changed=True)
 
     def cut(self, frame_idx=None, layer_idx=None):
-        pass
+        if frame_idx is None:
+            frame_idx = self.current_frame
+
+        if layer_idx is None:
+            layer_idx = self.layer_idx
+
+        cel = self.get_cel(frame_idx, layer_idx)
+        assert cel is not None
+        self._edit_cel = cel
+        del self.layers[layer_idx][frame_idx]
+
+        self._emit_signals(frame_changed=True)
 
     def copy(self, frame_idx=None, layer_idx=None):
-        pass
+        if frame_idx is None:
+            frame_idx = self.current_frame
+
+        if layer_idx is None:
+            layer_idx = self.layer_idx
+
+        cel = self.get_cel(frame_idx, layer_idx)
+        assert cel is not None
+        self._edit_cel = cel.copy()
 
     def paste(self, frame_idx=None, layer_idx=None):
-        pass
+        if frame_idx is None:
+            frame_idx = self.current_frame
+
+        if layer_idx is None:
+            layer_idx = self.layer_idx
+
+        assert self._edit_cel is not None
+        self.layers[layer_idx][frame_idx] = self._edit_cel
+        self._edit_cel = None
+
+        self._emit_signals(frame_changed=True)
 
     def _emit_signals(self, frame_changed=False, layer_changed=False):
         if frame_changed:
